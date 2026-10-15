@@ -101,18 +101,41 @@
   const levelRange = (lv) => (lv === 1 ? [12, layout.loftX1 - 12] : [14, view.WW - 14]);
 
   // ---------- characters ----------
-  const chars = NG.CHARS.map((d, i) => ({
-    d: { ...d }, i, name: d.name, status: null, anim: null, animT: 0,
-    x: 80 + i * 120, y: 0, vx: 0, vy: 0, dir: 1, ground: false,
-    aiT: 0.8 + i * 1.3, walkT: 0, blinkT: 2 + i, emoteT: 0, emote: null,
-    bubble: null, bubbleT: 0, dropUntil: 0, throwT: 0, locked: false, sit: false,
-    steps: [], task: null, pose: null, climbing: false, manual: false,
-  }));
+  // One character per person in the room, keyed by their id. Only people who are actually here get a character.
+  const chars = [];
+  const profiles = {}; // id -> { name, status, look }
+  const hashN = (str) => { let h = 7; for (const ch of String(str)) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h; };
+  function defaultLook(id) {
+    const b = NG.CHARS[hashN(id) % NG.CHARS.length];
+    const o = {}; for (const k of ['hairStyle', 'hair', 'skin', 'top', 'pants', 'coat', 'acc', 'hat', 'hatColor']) o[k] = b[k];
+    o.hair = NG.LOOK.hair[hashN(id + 'h') % NG.LOOK.hair.length];
+    o.top = NG.LOOK.top[hashN(id + 't') % NG.LOOK.top.length];
+    return o;
+  }
+  const getChar = (id) => chars.find((c) => c.id === id) || null;
+  function ensureChar(id) {
+    let c = getChar(id);
+    if (c) return c;
+    const p = profiles[id] || {};
+    c = { id, i: hashN(id) % 97, d: NG.sanitizeLook(p.look, defaultLook(id)), name: p.name || '손님', status: p.status || null,
+      anim: null, animT: 0, x: (layout ? view.WW : 700) - 24, y: view.floor, vx: 0, vy: 0, dir: -1, ground: true,
+      aiT: 0.2, walkT: 0, blinkT: 2, emoteT: 1.6, emote: '👋', bubble: null, bubbleT: 0, dropUntil: 0, throwT: 0,
+      locked: false, sit: false, steps: [], task: null, pose: null, climbing: false, manual: false, remote: null };
+    if (layout) planTo(c, 0, view.WW * (0.35 + (c.i % 30) / 100)); // walk in from the door
+    chars.push(c);
+    return c;
+  }
+  function removeChar(id) {
+    const k = chars.findIndex((c) => c.id === id);
+    if (k < 0) return;
+    freeSeat(chars[k]);
+    chars.splice(k, 1);
+  }
 
   function freeSeat(c) {
     if (!c.task) return;
     const o = occ[c.task.spot];
-    if (o && o[c.task.seat] === c.i) o[c.task.seat] = null;
+    if (o && o[c.task.seat] === c.id) o[c.task.seat] = null;
   }
   function standUp(c) {
     const doing = c.task && c.task.phase === 'do';
@@ -131,11 +154,11 @@
     const s = layout.byId[spotId];
     if (!s) return false;
     const o = occ[spotId];
-    let seat = o.findIndex((v) => v === c.i);
+    let seat = o.findIndex((v) => v === c.id);
     if (seat < 0) seat = o.findIndex((v) => v == null);
     if (seat < 0) return false;
     standUp(c);
-    o[seat] = c.i;
+    o[seat] = c.id;
     c.task = { spot: spotId, seat, phase: 'path', manual, until: 0 };
     c.sit = false; c.animT = 0;
     planTo(c, s.seats[seat].level, s.seats[seat].x);
@@ -177,8 +200,9 @@
 
     // Someone else is playing this character: follow their stream instead of running AI/physics here.
     if (c.remote) {
-      if (performance.now() - c.remote.at < 4000 && !(NG.app && NG.app.me === c.i)) { followRemote(c, dt); return; }
-      c.remote = null; if (c.task) standUp(c); c.climbing = false; c.ground = false; c.aiT = 1;
+      if (performance.now() - c.remote.at < 6000 && !(NG.app && NG.app.me === c.id)) { followRemote(c, dt); return; }
+      c.gone = true; return; // they left the room
+
     }
 
     if (c.task && c.task.phase === 'do') {
@@ -212,7 +236,7 @@
           c.task.phase = 'do';
           c.task.until = performance.now() + (9 + Math.random() * 14) * 1000;
           seatChar(c);
-          if (NG.stage.onArrive) NG.stage.onArrive(c.i, c.task.spot, c.task.manual);
+          if (NG.stage.onArrive) NG.stage.onArrive(c.id, c.task.spot, c.task.manual);
           return;
         }
         c.aiT = c.manual ? 3 : 0.6 + Math.random() * 2; c.manual = false;
@@ -727,7 +751,7 @@
   function drawLabels(c) {
     const T = TS();
     ctx.font = `11px ${FONT}`;
-    const isMe = NG.app && NG.app.me === c.i;
+    const isMe = NG.app && NG.app.me === c.id;
     const w = Math.round(ctx.measureText(c.name).width) + 10;
     const ny = c.pose === 'lie' ? c.y + 6 : c.pose === 'tent' ? c.y + 3 : c.y + 4;
     ctx.save(); ctx.translate(c.x, ny); ctx.scale(T, T);
@@ -883,7 +907,7 @@
   function startDart() {
     if (dart.active || NG.app.me == null) return;
     dart.active = true; dart.left = 3; dart.total = 0; dart.darts = []; dart.aimT = Math.random() * 10; dart.results = [];
-    const c = chars[NG.app.me];
+    const c = getChar(NG.app.me); if (!c) return;
     standUp(c);
     c.locked = true; c.sit = false; c.pose = null; c.climbing = false;
     c.x = (layout.line.x0 + layout.line.x1) / 2; c.y = view.floor; c.ground = true; c.vy = 0; c.vx = 0;
@@ -892,7 +916,7 @@
   }
   function throwDart() {
     if (!dart.active || dart.flying || dart.left <= 0 || !dart.aim) return;
-    const c = chars[NG.app.me];
+    const c = getChar(NG.app.me); if (!c) return;
     c.throwT = 0.35;
     dart.flying = { x0: c.x + 10 * c.dir, y0: c.y - 46, x1: dart.aim.x, y1: dart.aim.y, t: 0 };
     dart.left--;
@@ -919,7 +943,7 @@
   }
   function endDart() {
     dart.active = false;
-    const c = chars[NG.app.me];
+    const c = getChar(NG.app.me); if (!c) return;
     c.locked = false; c.aiT = 1.5;
     c.emote = dart.total >= 100 ? '🤩' : dart.total >= 40 ? '😎' : '🥲'; c.emoteT = 1.8;
     dart.floatTxt.push({ s: `합계 ${dart.total}점!`, x: layout.board.x, y: layout.board.y, t: 2, big: true, c: '#a8c8e0' });
@@ -943,7 +967,7 @@
   function exportState(c) {
     const doing = c.task && c.task.phase === 'do';
     return {
-      slot: c.i, fx: +(c.x / view.WW).toFixed(4), h: +(view.floor - c.y).toFixed(1), dir: c.dir,
+      slot: c.id, fx: +(c.x / view.WW).toFixed(4), h: +(view.floor - c.y).toFixed(1), dir: c.dir,
       pose: c.pose || null, spot: doing ? c.task.spot : null, seat: doing ? c.task.seat : 0,
       anim: c.animT > 0 ? c.anim : null, animT: c.animT > 0 ? +c.animT.toFixed(2) : 0,
       walk: !!c.vx && c.ground, air: !c.ground && !c.climbing, climb: !!c.climbing, sit: !!c.sit,
@@ -957,8 +981,8 @@
       const seat = Math.min(s.seat || 0, o.length - 1);
       if (!c.task || c.task.spot !== s.spot || c.task.seat !== seat) {
         freeSeat(c);
-        if (o[seat] != null && o[seat] !== c.i) { const other = chars[o[seat]]; if (other && !other.remote) standUp(other); }
-        o[seat] = c.i;
+        if (o[seat] != null && o[seat] !== c.id) { const other = getChar(o[seat]); if (other && !other.remote) standUp(other); }
+        o[seat] = c.id;
         c.task = { spot: s.spot, seat, phase: 'do', manual: true, until: 0 };
       }
       seatChar(c);
@@ -977,14 +1001,16 @@
     }
     if (s.anim && (c.anim !== s.anim || c.animT <= 0)) { c.anim = s.anim; c.animT = s.animT; }
   }
-  function applyRemote(slot, s) {
-    const c = chars[slot];
-    if (!c || (NG.app && NG.app.me === slot)) return;
+  function applyRemote(id, s) {
+    if (!id || (NG.app && NG.app.me === id)) return;
+    const isNew = !getChar(id);
+    const c = ensureChar(id);
+    if (isNew) { c.x = s.fx * view.WW; c.y = view.floor - s.h; if (NG.stage.onJoin) NG.stage.onJoin(id, c.name); }
     c.remote = { s, at: performance.now() };
   }
 
-  function act(slot, a) {
-    const c = chars[slot];
+  function act(id, a) {
+    const c = getChar(id);
     if (!c || c.locked) return;
     if (c.remote && performance.now() - c.remote.at < 4000 && !/^(wave|dance|cheer|sip)$/.test(a)) return; // their stream moves them
     if (a.startsWith('spot:')) { startTask(c, a.slice(5), true); return; }
@@ -1152,7 +1178,7 @@
     if (performance.now() < view.camHold) { view.camX = Math.max(0, Math.min(max, view.camX)); return; }
     let target = view.camX;
     if (dart.active) target = (layout.line.x0 + layout.board.x) / 2 - view.W / 2;
-    else if (NG.app && NG.app.me != null) target = chars[NG.app.me].x - view.W / 2;
+    else if (NG.app && getChar(NG.app.me)) target = getChar(NG.app.me).x - view.W / 2;
     target = Math.max(0, Math.min(max, target));
     view.camX += (target - view.camX) * Math.min(1, dt * 3);
   }
@@ -1176,6 +1202,7 @@
     const t = now / 1000;
     if (!layout) { requestAnimationFrame(frame); return; }
     for (const c of chars) updateChar(c, dt);
+    for (const c of chars.filter((x) => x.gone)) { removeChar(c.id); if (NG.stage.onLeave) NG.stage.onLeave(c.id, c.name); }
     updateDart(dt);
     const mood = timeMood();
     const musicOn = !!(NG.music && NG.music.playing);
@@ -1351,23 +1378,23 @@
     get dartActive() { return dart.active; },
     get ringOpen() { return !!ringOpen; },
     get spots() { return layout ? layout.spots : []; },
-    myTask() { const c = NG.app && NG.app.me != null ? chars[NG.app.me] : null; return c && c.task ? c.task.spot : null; },
+    myTask() { const c = NG.app ? getChar(NG.app.me) : null; return c && c.task ? c.task.spot : null; },
     init() {
       new ResizeObserver(resize).observe(canvas.parentElement);
       resize();
-      chars.forEach((c, i) => { c.x = view.WW * (0.3 + i * 0.22); c.y = view.floor; c.ground = true; });
       requestAnimationFrame(frame);
     },
     resize,
-    say(slot, text) { const c = chars[slot]; if (c) { c.bubble = text; c.bubbleT = 6; } },
-    emote(slot, e) { const c = chars[slot]; if (c) { c.emote = e; c.emoteT = 1.8; } },
-    myPos() { const c = NG.app && NG.app.me != null ? chars[NG.app.me] : null; return c ? exportState(c) : null; },
-    applyRemote,
-    isLive(slot) { const c = chars[slot]; return !!(c && c.remote && performance.now() - c.remote.at < 4000); },
-    setPlayer(slot, name, status, look) {
-      const c = chars[slot]; if (!c) return;
-      c.name = name || NG.CHARS[slot].name; c.status = status || null;
-      if (look !== undefined) c.d = NG.sanitizeLook(look, NG.CHARS[slot]);
+    say(id, text) { const c = getChar(id); if (c) { c.bubble = text; c.bubbleT = 6; } },
+    emote(id, e) { const c = getChar(id); if (c) { c.emote = e; c.emoteT = 1.8; } },
+    myPos() { const c = NG.app ? getChar(NG.app.me) : null; return c ? exportState(c) : null; },
+    applyRemote, getChar, defaultLook,
+    setMe(id) { return ensureChar(id); },
+    setPlayer(id, name, status, look) {
+      profiles[id] = { name, status, look };
+      const c = getChar(id); if (!c) return;
+      c.name = name || c.name || '손님'; c.status = status || null;
+      if (look !== undefined) c.d = NG.sanitizeLook(look, defaultLook(id));
     },
   };
 })();

@@ -11,6 +11,9 @@
   let me;
   try { me = { ...def, ...JSON.parse(localStorage.getItem(KEY)) }; } catch { me = { ...def }; }
   me.best = { ...def.best, ...me.best };
+  // Everyone gets a personal id; their character is keyed by it (me.slot holds it once they've entered).
+  if (!me.uid) me.uid = 'u' + Math.random().toString(36).slice(2, 12).padEnd(10, '0');
+  if (typeof me.slot === 'number') me.slot = me.uid; // from the old three-seat version
   me.gacha = me.gacha || {}; me.holo = me.holo || {};
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch { /* blocked */ } };
 
@@ -184,6 +187,8 @@
   }
   function publishPresence() {
     if (me.slot == null) return;
+    NG.stage.setPlayer(me.slot, me.name, me.status, me.look);
+    NG.stage.setMe(me.slot);
     NG.stage.setPlayer(me.slot, me.name, me.status, me.look);
     NG.net.send({ type: 'presence', slot: me.slot, name: me.name, status: me.status, look: me.look });
   }
@@ -646,7 +651,8 @@
     if (m.type === 'sys') {
       el.className = 'msg sys'; el.innerHTML = `<span>${esc(m.text)}</span>`;
     } else {
-      const c = NG.CHARS[m.slot];
+      const pl = shared.players[m.slot];
+      const c = { hair: (pl && pl.look && pl.look.hair) || (m.slot ? NG.stage.defaultLook(m.slot).hair : '#e7dcc6') };
       el.className = 'msg' + (m.slot === me.slot ? ' mine' : '');
       el.innerHTML = `<b style="color:${c ? c.hair : '#fff'}">${esc(m.name || '???')}</b><span>${esc(m.text)}</span><time>${time}</time>`;
     }
@@ -686,45 +692,26 @@
   }));
 
   // ---------- settings / identity / customizer ----------
-  const LOOK_KEYS = ['hairStyle', 'hair', 'skin', 'top', 'pants', 'coat', 'acc', 'hat', 'hatColor'];
-  const baseLook = (slot) => { const b = NG.CHARS[slot], o = {}; LOOK_KEYS.forEach((k) => { o[k] = b[k]; }); return o; };
-  function charCards(sel) {
-    return NG.CHARS.map((c) => {
-      const p = shared.players[c.id];
-      const named = p && p.name;
-      const l = NG.sanitizeLook(p && p.look, baseLook(c.id));
-      return `<button type="button" class="ccard ${sel === c.id ? 'on' : ''}" data-c="${c.id}">
-        <span class="cface" style="--hair:${l.hair};--skin:${l.skin};--top:${l.top}"></span><b>${named ? esc(p.name) : `멤버 ${c.id + 1}`}</b>
-        <small>${isLive(c.id) ? '🟢 지금 접속 중' : named ? (c.id === me.slot ? '나' : '이 멤버로 입장') : '아직 이름 없음'}</small></button>`;
-    }).join('');
-  }
-  // First entry is just member + name; the full customizer opens from settings (or askIdentity(true)).
+  // Entering needs only a name; the full customizer (askIdentity(true)) is in settings.
   function askIdentity(full = me.slot != null) {
-    const firstFree = [0, 1, 2].find((i) => !(shared.players[i] && shared.players[i].name) && !isLive(i));
-    let sel = me.slot ?? firstFree ?? 0;
-    const seatLook = (i) => NG.sanitizeLook(i === me.slot && me.look ? me.look : shared.players[i] && shared.players[i].look, baseLook(i));
-    const seatName = (i) => (i === me.slot && me.name) || (shared.players[i] && shared.players[i].name) || '';
-    let look = seatLook(sel);
+    let look = NG.sanitizeLook(me.look || null, NG.stage.defaultLook(me.uid));
     const first = me.slot == null;
     const chips = (key, list) => `<div class="cz-row"><span>${{ hairStyle: '머리 모양', hat: '모자', acc: '얼굴' }[key]}</span><div class="cz-opts">${
       list.map(([v, n]) => `<button type="button" class="cz-chip" data-k="${key}" data-v="${v}">${n}</button>`).join('')}</div></div>`;
     const sw = (key, label) => `<div class="cz-row"><span>${label}</span><div class="cz-opts">${
       NG.LOOK[key].map((c) => `<button type="button" class="cz-sw" data-k="${key}" data-v="${c}" style="background:${c}" aria-label="${label} ${c}"></button>`).join('')}</div></div>`;
     const card = !full ? modal(`<h3>👋 누구세요?</h3>
-      <p class="sub">볼륨팀 멤버 자리를 고르고 이름만 적으면 바로 입장해요. 한 번 정한 이름은 모두에게 고정되고, 본인만 바꿀 수 있어요.</p>
-      <div class="ccards simple">${charCards(sel)}</div>
-      <input id="id-name" class="simple-name" maxlength="12" placeholder="이름 (닉네임)" value="${esc(seatName(sel))}" aria-label="이름">
+      <p class="sub">이름만 적으면 바로 입장해요. 들어온 사람마다 캐릭터가 하나씩 생기고, 모두 같은 아지트를 함께 봐요.</p>
+      <input id="id-name" class="simple-name" maxlength="12" placeholder="이름 (닉네임)" value="${esc(me.name)}" aria-label="이름">
       <button class="btn primary" id="id-ok">입장하기</button>
-      <p class="sub center">👕 캐릭터 꾸미기는 나중에 ⚙️ 설정 → <b>이름·꾸미기</b>에서 언제든 할 수 있어요.</p>`, 'identity simple-id') : modal(`<h3>${first ? '👋 누구세요? 멤버를 골라주세요' : '👕 내 캐릭터'}</h3>
-      <p class="sub">볼륨팀 멤버 3명 자리예요. 한 번 정한 이름은 모두에게 고정되고, 그 멤버 본인만 여기서 바꿀 수 있어요.</p>
+      <p class="sub center">👕 캐릭터 꾸미기는 나중에 ⚙️ 설정 → <b>이름·꾸미기</b>에서 언제든 할 수 있어요.</p>`, 'identity simple-id') : modal(`<h3>👕 내 캐릭터</h3>
       <div class="cz">
         <div class="cz-left">
           <canvas id="cz-preview" class="cz-preview"></canvas>
-          <input id="id-name" maxlength="12" placeholder="닉네임" value="${esc(seatName(sel))}" aria-label="닉네임">
+          <input id="id-name" maxlength="12" placeholder="이름" value="${esc(me.name)}" aria-label="이름">
           <button type="button" class="btn" id="cz-random">🎲 랜덤</button>
         </div>
         <div class="cz-right">
-          <div class="cz-row"><span>멤버</span><div class="ccards">${charCards(sel)}</div></div>
           ${chips('hairStyle', NG.LOOK.hairStyle)}${sw('hair', '머리 색')}${sw('skin', '피부')}
           ${sw('top', '상의')}${sw('pants', '하의')}
           <div class="cz-row"><span>가운</span><div class="cz-opts"><button type="button" class="cz-chip" data-k="coat" data-v="1">🥼 실험 가운</button><button type="button" class="cz-chip" data-k="coat" data-v="0">벗기</button></div></div>
@@ -742,12 +729,6 @@
     };
     sync();
     card.addEventListener('click', (e) => {
-      const c = e.target.closest('[data-c]');
-      if (c) {
-        sel = +c.dataset.c; look = seatLook(sel);
-        $('#id-name').value = seatName(sel);
-        $$('.ccard', card).forEach((x) => x.classList.toggle('on', x === c)); sync(); return;
-      }
       const b = e.target.closest('[data-k]');
       if (b) { look[b.dataset.k] = b.dataset.k === 'coat' ? b.dataset.v === '1' : b.dataset.v; sync(); }
     });
@@ -766,14 +747,15 @@
     requestAnimationFrame(loop);
 
     const ok = () => {
-      if (isLive(sel) && sel !== me.slot) { toast('🟢 그 멤버는 지금 다른 곳에서 접속 중이에요. 다른 자리를 골라주세요'); return; }
       const name = $('#id-name').value.trim();
-      if (!name) { toast('닉네임을 적어주세요'); $('#id-name').focus(); return; }
-      const prev = me.slot;
-      me.slot = sel; me.name = name.slice(0, 12); me.look = { ...look }; save();
+      if (!name) { toast('이름을 적어주세요'); $('#id-name').focus(); return; }
+      const entering = me.slot == null;
+      me.slot = me.uid; me.name = name.slice(0, 12);
+      if (full || !me.look) me.look = { ...look };
+      save();
       publishPresence(); renderHud(); closeModal();
-      if (prev == null) {
-        NG.net.send({ type: 'sys', slot: sel, text: `👋 ${me.name}님이 입장했어요` });
+      if (entering) {
+        NG.net.send({ type: 'sys', slot: me.slot, text: `👋 ${me.name}님이 입장했어요` });
         setTimeout(() => toast('🖱️ 우클릭(폰은 길게 누르기) → 끌어서 행동! · 꾸미기는 ⚙️ 설정에서'), 600);
       } else toast('저장했어요');
       if ($('#w-settings').classList.contains('open')) renderSettings();
@@ -782,6 +764,8 @@
     $('#id-name').onkeydown = (e) => { if (e.key === 'Enter') ok(); };
     if (first) setTimeout(() => $('#id-name').focus(), 50);
   }
+  NG.stage.onJoin = (id, name) => { if (Date.now() - bootAt > 3000) toast(`👋 ${name !== '손님' ? name + '님' : '누군가'}이 들어왔어요`); };
+  NG.stage.onLeave = (id, name) => toast(`🚪 ${name}님이 나갔어요`);
   // ---------- rest spots & jukebox ----------
   const spotCool = {};
   NG.stage.onArrive = (slot, id, manual) => {
@@ -826,9 +810,9 @@
   // ---------- first-run tutorial ----------
   const TUT = [
     { art: 'split', t: '작업하면서 옆에 띄워두세요', d: '브라우저 창을 <b>가로로 좁게</b> 줄여서 작업 화면 옆에 붙여두면 딱이에요. 좁은 창에서도 화면이 알아서 맞춰지고, ⤡ 버튼을 누르면 아지트와 채팅만 남는 미니 모드가 돼요.' },
-    { art: '🛋️', t: '캐릭터는 알아서 놀아요', d: '멤버 캐릭터들이 아지트를 돌아다니며 쉬어요. <b>가구를 누르면</b> 내 캐릭터가 거기로 가서 쉬고, <b>우클릭</b>(폰은 길게 누르기)한 뒤 끌어서 놓으면 인사·춤·점프 같은 행동을 해요.' },
+    { art: '🛋️', t: '캐릭터는 알아서 놀아요', d: '들어온 사람마다 캐릭터가 생겨서 아지트를 돌아다니며 쉬어요. 모두 같은 화면을 함께 봐요. <b>가구를 누르면</b> 내 캐릭터가 거기로 가서 쉬고, <b>우클릭</b>(폰은 길게 누르기)한 뒤 끌어서 놓으면 인사·춤·점프 같은 행동을 해요.' },
     { art: '💬', t: '상태 · 수다 · 포스트잇', d: '"카페인이 필요함", "웃참중" 같은 상태를 머리 위에 띄우고, 투명 채팅창으로 수다 떨고, 📌 게시판에 포스트잇을 붙여요.' },
-    { art: '🎰', t: '코인 모아서 가챠', d: '다트와 미니게임으로 코인을 모아 <b>가챠샵</b>에서 밴드·침착맨·아이돌 피규어를 뽑아요. 이제 멤버를 골라볼까요?' },
+    { art: '🎰', t: '코인 모아서 가챠', d: '다트와 미니게임으로 코인을 모아 <b>가챠샵</b>에서 밴드·침착맨·아이돌 피규어를 뽑아요. 이제 이름을 정해볼까요?' },
   ];
   function showTutorial(step = 0) {
     const s = TUT[step];
@@ -838,7 +822,7 @@
     const card = modal(`<div class="tut">${art}<h3>${s.t}</h3><p>${s.d}</p>
       <div class="tut-dots">${TUT.map((_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('')}</div>
       <div class="row">${step > 0 ? '<button class="btn" id="tut-prev">이전</button>' : '<button class="btn" id="tut-skip">건너뛰기</button>'}
-        <button class="btn primary" id="tut-next">${step < TUT.length - 1 ? '다음' : '멤버 고르기'}</button></div></div>`, 'tutorial');
+        <button class="btn primary" id="tut-next">${step < TUT.length - 1 ? '다음' : '이름 정하기'}</button></div></div>`, 'tutorial');
     const done = () => { me.tutorial = true; save(); if (me.slot == null) askIdentity(); else closeModal(); };
     $('#tut-next', card).onclick = () => (step < TUT.length - 1 ? showTutorial(step + 1) : done());
     const prev = $('#tut-prev', card); if (prev) prev.onclick = () => showTutorial(step - 1);
@@ -854,7 +838,7 @@
     NG.net.send({ type: 'act', slot: me.slot, a });
   };
   function renderSettings() {
-    $('#set-who').innerHTML = me.slot != null ? `${esc(me.name)} · ${me.slot + 1}번 자리` : '미선택';
+    $('#set-who').innerHTML = me.slot != null ? esc(me.name) : '미입장';
     $('#set-team').value = NG.net.team;
     $('#set-net').textContent = NG.net.mode === 'p2p'
       ? (NG.net.peers > 0 ? `🟢 P2P · 지금 팀원 ${NG.net.peers}명과 연결 (채팅·상태·게시판 실시간 공유)` : '🟡 P2P · 아직 혼자예요. 같은 팀 코드로 들어온 팀원과 자동 연결돼요')
@@ -873,7 +857,7 @@
     if (!w) toast('팝업이 차단됐어요. 브라우저에서 팝업을 허용해주세요.');
   });
   armed($('#set-reset'), '한 번 더 누르면 초기화돼요', () => {
-    const keep = { slot: me.slot, name: me.name, look: me.look };
+    const keep = { slot: me.slot, uid: me.uid, name: me.name, look: me.look };
     me = { ...def, ...keep, best: { ...def.best }, figures: {}, custom: [], lastTick: Date.now() }; save(); renderHud(); toast('초기화했어요');
   });
 
@@ -900,7 +884,7 @@
       if ($('#w-status').classList.contains('open')) renderStatus();
     } else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
     else if (m.type === 'act') { if (m.slot !== me.slot && m.a !== 'dart') NG.stage.act(m.slot, m.a); }
-    else if (m.type === 'pos') { if (m.slot !== me.slot) { NG.stage.applyRemote(m.slot, m); liveAt[m.slot] = Date.now(); } }
+    else if (m.type === 'pos') { if (m.slot !== me.slot) NG.stage.applyRemote(m.slot, m); }
     else if (m.type === 'note') {
       const i = shared.notes.findIndex((o) => o.id === m.id);
       if (i >= 0) shared.notes[i] = m; else { shared.notes.push(m); if (m.slot !== me.slot && Date.now() - bootAt > 4000) toast(`📌 ${m.name}님이 포스트잇을 붙였어요`); }
@@ -908,7 +892,6 @@
     } else if (m.type === 'noteDel') { shared.notes = shared.notes.filter((o) => o.id !== m.id); renderBoard(); }
   }
   // Stream my character (position, rest spot, pose, animation) so everyone sees the same thing; ~5×/s on change, 1×/s idle.
-  const liveAt = {};
   let lastPos = '', lastPosAt = 0;
   setInterval(() => {
     if (me.slot == null || !NG.net.online) return;
@@ -919,7 +902,6 @@
     lastPos = key; lastPosAt = now;
     NG.net.send({ type: 'pos', ...p });
   }, 200);
-  const isLive = (slot) => slot !== me.slot && Date.now() - (liveAt[slot] || 0) < 5000;
 
   function bumpBoard() { $('#board-count').textContent = shared.notes.length; }
 
@@ -932,7 +914,7 @@
     NG.ui.setNet(NG.net.online);
     for (const [k, p] of Object.entries(st.players || {})) {
       shared.players[k] = p;
-      if (p && p.name) NG.stage.setPlayer(+k, p.name, p.status, p.look || null);
+      if (p && p.name) NG.stage.setPlayer(k, p.name, p.status, p.look || null);
     }
     shared.notes = st.notes || [];
     (st.chat || []).slice(-60).forEach(addChat);

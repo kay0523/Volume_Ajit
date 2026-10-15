@@ -12,7 +12,8 @@
   }
   // Clamp anything that arrives from another peer to the shapes the app expects.
   const str = (v, n) => String(v ?? '').slice(0, n);
-  const slotOf = (v) => (Number.isInteger(v) && v >= 0 && v < 3 ? v : -1);
+  // `slot` carries the sender's person id (a short random string), not a fixed seat.
+  const slotOf = (v) => (typeof v === 'string' && /^[a-z0-9]{4,24}$/i.test(v) ? v : '');
   function sanitize(m) {
     if (!m || typeof m !== 'object') return null;
     const slot = slotOf(m.slot), t = Number(m.t) || Date.now();
@@ -30,15 +31,15 @@
       }
       case 'noteDel': return m.id ? { type: 'noteDel', id: str(m.id, 40), t } : null;
       case 'presence': {
-        if (slot < 0) return null;
+        if (!slot) return null;
         const st = m.status && typeof m.status === 'object' ? { e: str(m.status.e, 8), t: str(m.status.t, 24) } : null;
         const look = m.look && typeof m.look === 'object' ? m.look : null;
         return { type: 'presence', slot, name: str(m.name, 20), status: st, look, t };
       }
-      case 'emote': return slot >= 0 ? { type: 'emote', slot, e: str(m.e, 8) } : null;
-      case 'act': return slot >= 0 ? { type: 'act', slot, a: str(m.a, 16) } : null;
+      case 'emote': return slot ? { type: 'emote', slot, e: str(m.e, 8) } : null;
+      case 'act': return slot ? { type: 'act', slot, a: str(m.a, 16) } : null;
       case 'pos': {
-        if (slot < 0) return null;
+        if (!slot) return null;
         const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
         return { type: 'pos', slot, fx: num(m.fx, 0, 1), h: num(m.h, -50, 400), dir: m.dir < 0 ? -1 : 1,
           pose: m.pose ? str(m.pose, 12) : null, spot: m.spot ? str(m.spot, 16) : null, seat: Math.round(num(m.seat, 0, 5)),
@@ -107,7 +108,7 @@
       (Array.isArray(st.chat) ? st.chat : []).slice(-120).forEach(take);
       (Array.isArray(st.notes) ? st.notes : []).slice(-80).forEach((n) => take({ ...n, type: 'note' }));
       Object.entries(st.del || {}).slice(-300).forEach(([id, t]) => take({ type: 'noteDel', id, t }));
-      Object.entries(st.players || {}).forEach(([slot, p]) => take({ ...p, type: 'presence', slot: +slot }));
+      Object.entries(st.players || {}).forEach(([slot, p]) => take({ ...p, type: 'presence', slot }));
     };
     const peers = () => Object.keys(room.getPeers()).length;
     const changed = () => { NG.ui && NG.ui.setNet(true, peers()); };
@@ -130,8 +131,8 @@
     window.claude.use('room').then((r) => {
       room = r;
       if (!room) return;
-      room.on('emote', (d) => d && typeof d.slot === 'number' && out({ type: 'emote', slot: d.slot, e: String(d.e || '').slice(0, 8) }));
-      room.on('act', (d) => d && typeof d.slot === 'number' && out({ type: 'act', slot: d.slot, a: String(d.a || '').slice(0, 12) }));
+      room.on('emote', (d) => { const m = sanitize({ ...(d || {}), type: 'emote' }); if (m) out(m); });
+      room.on('act', (d) => { const m = sanitize({ ...(d || {}), type: 'act' }); if (m) out(m); });
       room.on('pos', (d) => { const m = sanitize({ ...(d || {}), type: 'pos' }); if (m) out(m); });
     }).catch(() => {});
     const err = () => NG.ui && NG.ui.setNet(false);
@@ -152,7 +153,7 @@
     db.collection('players').onSnapshot((snap) => {
       for (const c of snap.docChanges()) {
         const p = c.doc.data();
-        if (c.type !== 'removed' && p && typeof p.slot === 'number') out({ ...p, type: 'presence' });
+        if (c.type !== 'removed' && p && typeof p.slot === 'string') out({ ...p, type: 'presence' });
       }
     }, err);
     return true;

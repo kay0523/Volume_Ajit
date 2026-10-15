@@ -539,3 +539,12 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 .ccards.simple .ccard { padding: 10px 4px; }
 .simple-name { width: 100%; border: 2px solid var(--accent); background: var(--paper-hi); border-radius: 2px; padding: 10px; text-align: center; font-family: var(--font-b); font-size: 16px; margin-bottom: 8px; }
 .sub.center { text-align: center; margin-top: 8px; }
+
+/* Narrow windows: bump the UI text so panels stay readable when the page is docked beside work */
+@media (max-width: 640px) {
+  .win.panel .win-body, .modal-card, .chat-log, .chat-form, .chat-emotes { zoom: 1.12; }
+}
+@media (max-width: 420px) {
+  .win.panel .win-body, .modal-card, .chat-log, .chat-form, .chat-emotes { zoom: 1.22; }
+  .win-head { font-size: 16px; }
+}

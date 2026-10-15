@@ -429,26 +429,27 @@
   }
   function drawCharFx(c, t) {
     const top = headTop(c);
+    const T = Math.min(2.4, Math.max(1, 1.45 / view.s));
     ctx.textAlign = 'center';
     const sleepy = (c.status && c.status.e === '😴') || c.pose === 'lie' || c.pose === 'tent';
     if (sleepy) {
-      ctx.font = `12px ${FONT}`; ctx.fillStyle = '#6c7bd8';
+      ctx.font = `${12 * T}px ${FONT}`; ctx.fillStyle = '#6c7bd8';
       const k = (t * 0.8 + c.i * 0.3) % 1;
       ctx.globalAlpha = 1 - k; ctx.fillText('z', c.x + 14 + k * 8, top - k * 14);
       ctx.globalAlpha = Math.max(0, 1 - ((k + 0.5) % 1)); ctx.fillText('Z', c.x + 18 + ((k + 0.5) % 1) * 8, top - 4 - ((k + 0.5) % 1) * 14);
       ctx.globalAlpha = 1;
     }
     if (c.pose === 'zone') {
-      ctx.font = `12px ${FONT}`; ctx.fillStyle = '#5f5c57';
+      ctx.font = `${12 * T}px ${FONT}`; ctx.fillStyle = '#5f5c57';
       ctx.fillText('.'.repeat(1 + Math.floor(t * 1.5 + c.i) % 3), c.x + 16, top + 4);
     }
     if (c.pose === 'listen' || c.animT > 0 && c.anim === 'dance') {
-      ctx.font = `12px ${FONT}`; ctx.fillStyle = '#9c4a3f';
+      ctx.font = `${12 * T}px ${FONT}`; ctx.fillStyle = '#9c4a3f';
       ctx.fillText('♪', c.x - 18 + Math.sin(t * 3) * 3, top + 8 - (t * 20 % 14)); ctx.fillText('♫', c.x + 18, top + 14 - ((t * 20 + 7) % 14));
     }
     if (c.emoteT > 0 && c.emote) {
-      ctx.font = '20px sans-serif';
-      ctx.fillText(c.emote, c.x, top - 8 - (1.6 - c.emoteT) * 10);
+      ctx.font = `${20 * T}px sans-serif`;
+      ctx.fillText(c.emote, c.x, top - 8 * T - (1.6 - c.emoteT) * 10);
     }
     ctx.textAlign = 'left';
   }
@@ -715,15 +716,20 @@
   }
 
   // ---------- crisp overlay: name tags, bubbles, status ----------
+  // Overlay text keeps a readable on-screen size: the smaller the window, the bigger it is relative to the room.
+  const TS = () => Math.min(2.4, Math.max(1, 1.45 / view.s));
   function drawLabels(c) {
+    const T = TS();
     ctx.font = `11px ${FONT}`;
     const isMe = NG.app && NG.app.me === c.i;
     const w = Math.round(ctx.measureText(c.name).width) + 10;
     const ny = c.pose === 'lie' ? c.y + 6 : c.pose === 'tent' ? c.y + 3 : c.y + 4;
+    ctx.save(); ctx.translate(c.x, ny); ctx.scale(T, T);
     ctx.fillStyle = isMe ? '#c0703a' : 'rgba(43,34,30,.82)';
-    ctx.fillRect(Math.round(c.x - w / 2), ny, w, 15);
+    ctx.fillRect(Math.round(-w / 2), 0, w, 15);
     ctx.fillStyle = '#f3ead8'; ctx.textAlign = 'center';
-    ctx.fillText(c.name, c.x, ny + 11.5);
+    ctx.fillText(c.name, 0, 11.5);
+    ctx.restore();
 
     let top = headTop(c);
     if (c.bubble && c.bubbleT > 0) top = speech(c.x, top, c.bubble, Math.min(1, c.bubbleT * 2));
@@ -731,10 +737,12 @@
       const txt = `${c.status.e} ${c.status.t}`;
       ctx.font = `11px ${FONT}`;
       const sw = Math.round(ctx.measureText(txt).width) + 12;
-      const x0 = Math.round(Math.min(Math.max(c.x - sw / 2, view.camX + 2), view.camX + view.W - sw - 2));
-      ctx.fillStyle = '#2b221e'; ctx.fillRect(x0 - 1, top - 18, sw + 2, 17);
-      ctx.fillStyle = '#efe6d2'; ctx.fillRect(x0, top - 17, sw, 15);
-      ctx.fillStyle = '#3b302a'; ctx.fillText(txt, x0 + sw / 2, top - 5.5);
+      const x0 = Math.min(Math.max(c.x - sw * T / 2, view.camX + 2), view.camX + view.W - sw * T - 2);
+      ctx.save(); ctx.translate(x0, top - 18 * T); ctx.scale(T, T);
+      ctx.fillStyle = '#2b221e'; ctx.fillRect(-1, 0, sw + 2, 17);
+      ctx.fillStyle = '#efe6d2'; ctx.fillRect(0, 1, sw, 15);
+      ctx.fillStyle = '#3b302a'; ctx.textAlign = 'center'; ctx.fillText(txt, sw / 2, 12.5);
+      ctx.restore();
     }
     ctx.textAlign = 'left';
   }
@@ -749,28 +757,34 @@
     return lines;
   }
   function speech(x, bottom, text, alpha) {
+    const T = TS();
     ctx.save(); ctx.globalAlpha = alpha;
     ctx.font = `11px ${FONT}`;
     const lines = wrap(text, 130);
     const w = Math.round(Math.max(...lines.map((l) => ctx.measureText(l).width)) + 14);
     const h = lines.length * 14 + 8;
-    const bx = Math.round(Math.min(Math.max(x - w / 2, view.camX + 4), view.camX + view.W - w - 4));
-    const by = Math.round(bottom - h - 10);
-    ctx.fillStyle = '#2b221e'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
-    ctx.fillStyle = '#fbf6ea'; ctx.fillRect(bx, by, w, h);
-    ctx.fillStyle = '#2b221e'; ctx.fillRect(x - 3, by + h, 7, 2); ctx.fillRect(x - 1, by + h + 2, 3, 3);
-    ctx.fillStyle = '#fbf6ea'; ctx.fillRect(x - 2, by + h - 1, 5, 2); ctx.fillRect(x, by + h + 1, 1, 2);
+    const bx = Math.min(Math.max(x - w * T / 2, view.camX + 4), view.camX + view.W - w * T - 4);
+    const by = bottom - (h + 10) * T;
+    ctx.translate(bx, by); ctx.scale(T, T);
+    const tx = (x - bx) / T; // tail position in local units
+    ctx.fillStyle = '#2b221e'; ctx.fillRect(-1, -1, w + 2, h + 2);
+    ctx.fillStyle = '#fbf6ea'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#2b221e'; ctx.fillRect(tx - 3, h, 7, 2); ctx.fillRect(tx - 1, h + 2, 3, 3);
+    ctx.fillStyle = '#fbf6ea'; ctx.fillRect(tx - 2, h - 1, 5, 2); ctx.fillRect(tx, h + 1, 1, 2);
     ctx.fillStyle = '#2b221e';
-    lines.forEach((l, i) => ctx.fillText(l, bx + 7, by + 15 + i * 14));
+    lines.forEach((l, i) => ctx.fillText(l, 7, 15 + i * 14));
     ctx.restore();
-    return by - 6;
+    return by - 6 * T;
   }
   function tag(x, y, text) {
+    const T = TS();
     ctx.font = `11px ${FONT}`;
     const w = Math.round(ctx.measureText(text).width) + 12;
-    const x0 = Math.round(Math.min(Math.max(x - w / 2, view.camX + 2), view.camX + view.W - w - 2));
-    ctx.fillStyle = '#2b221e'; ctx.fillRect(x0, y - 15, w, 16);
-    ctx.fillStyle = '#f6d58e'; ctx.fillText(text, x0 + 6, y - 3.5);
+    const x0 = Math.min(Math.max(x - w * T / 2, view.camX + 2), view.camX + view.W - w * T - 2);
+    ctx.save(); ctx.translate(x0, y - 15 * T); ctx.scale(T, T);
+    ctx.fillStyle = '#2b221e'; ctx.fillRect(0, 0, w, 16);
+    ctx.fillStyle = '#f6d58e'; ctx.fillText(text, 6, 11.5);
+    ctx.restore();
   }
 
   // ---------- darts ----------
@@ -853,7 +867,7 @@
     for (const f of dart.floatTxt) {
       f.t -= dt; f.y -= 22 * dt;
       ctx.globalAlpha = Math.max(0, Math.min(1, f.t));
-      ctx.font = `${f.big ? 16 : 13}px ${FONT_B}`;
+      ctx.font = `${(f.big ? 16 : 13) * TS()}px ${FONT_B}`;
       ctx.lineWidth = 4; ctx.strokeStyle = '#2b221e'; ctx.strokeText(f.s, f.x, f.y);
       ctx.fillStyle = f.c || '#f6d58e'; ctx.fillText(f.s, f.x, f.y);
     }

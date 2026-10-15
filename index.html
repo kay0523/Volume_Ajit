@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>볼륨 아지트</title>
+  <title>뚠뚠 아지트</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
     <header id="topbar">
-      <div class="brand"><span class="logo">🎯</span><span class="title">볼륨 <em>아지트</em></span><span id="net" class="net" title="연결 상태"></span><span id="net-count" class="net-count"></span></div>
+      <div class="brand"><span class="logo">🎯</span><span class="title">뚠뚠 <em>아지트</em></span><span id="net" class="net" title="연결 상태"></span><span id="net-count" class="net-count"></span></div>
       <button id="me-chip" class="me-chip" data-win="w-status" title="내 상태">
         <span id="my-name">캐릭터 선택</span><span id="my-status" class="st"></span>
       </button>
@@ -19,7 +19,7 @@
         <button data-win="w-rest" title="쉼터"><span>🛋️</span><em>쉼터</em></button>
         <button data-win="w-status" title="상태"><span>💬</span><em>상태</em></button>
         <button data-win="w-board" title="게시판"><span>📌</span><em>게시판</em><i id="board-count" class="cnt">0</i></button>
-        <button data-win="w-figures" title="피규어"><span>🦴</span><em>피규어</em></button>
+        <button data-win="w-figures" title="피규어"><span>🧸</span><em>피규어</em></button>
         <button data-win="w-games" title="미니게임"><span>🎮</span><em>게임</em></button>
         <button data-win="w-settings" title="설정"><span>⚙️</span><em>설정</em></button>
         <button id="music-nav" title="재즈 틀기/끄기">🎷</button>
@@ -85,18 +85,10 @@
 
   <!-- figures -->
   <section id="w-figures" class="win panel wide" style="top:64px;right:12px">
-    <div class="win-head"><span>🦴 피규어 도감</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-head"><span>🧸 피규어 도감</span><button class="win-x" aria-label="닫기">×</button></div>
     <div class="win-body">
-      <div id="fig-tabs" class="tabs"><button data-t="anatomy">🦴 해부학 <small id="fig-count"></small></button><button data-t="band">🎸 밴드</button><button data-t="chim">🍗 침착맨</button><button data-t="idol">🎤 아이돌</button></div>
-      <div id="fig-anatomy">
-      <div class="gacha">
-        <div id="gacha-machine" class="machine"><div class="globe"><span>🫀</span><span>💀</span><span>🧠</span><span>🦷</span><span>🧬</span><span>👁️</span></div><div class="slot"></div></div>
-        <div><p><b>캡슐 뽑기</b> · 30🪙</p><p class="sub">일반 70% · 레어 25% · 에픽 5%<br>모은 피규어는 스테이지 진열대에 올라가요.</p>
-          <button id="gacha-btn" class="btn primary">🎰 뽑기!</button></div>
-      </div>
-      <div id="fig-grid" class="fig-grid"></div>
-      </div>
-      <div id="fig-gacha" hidden></div>
+      <div id="fig-tabs" class="tabs"><button data-t="band">🎸 밴드</button><button data-t="chim">🍗 침착맨</button><button data-t="idol">🎤 아이돌</button></div>
+      <div id="fig-gacha"></div>
     </div>
   </section>
 
@@ -104,7 +96,7 @@
   <section id="w-games" class="win panel" style="top:64px;right:12px">
     <div class="win-head"><span>🎮 미니게임</span><button class="win-x" aria-label="닫기">×</button></div>
     <div class="win-body">
-      <div id="game-tabs" class="tabs"><button data-g="dart">🎯 다트</button><button data-g="quiz">🧠 해부학 퀴즈</button><button data-g="cell">🧬 세포 2048</button><button data-g="stack">📚 책 쌓기</button></div>
+      <div id="game-tabs" class="tabs"><button data-g="dart">🎯 다트</button><button data-g="bubble">🫧 버블 톡톡</button><button data-g="fish">🎣 멍 낚시</button><button data-g="stack">📚 책 쌓기</button></div>
       <div id="game-body"></div>
     </div>
   </section>

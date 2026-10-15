@@ -7,7 +7,7 @@
 
   // ---------- persistent personal state ----------
   const def = { slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 60, figures: {}, shelf: true,
-    caffeine: 80, focus: 90, exp: 0, lv: 1, best: { dart: 0, quiz: 0, memory: 0 }, chatOpacity: 0.55, lastTick: Date.now() };
+    caffeine: 80, focus: 90, exp: 0, lv: 1, best: { dart: 0 }, chatOpacity: 0.55, lastTick: Date.now() };
   let me;
   try { me = { ...def, ...JSON.parse(localStorage.getItem(KEY)) }; } catch { me = { ...def }; }
   me.best = { ...def.best, ...me.best };
@@ -22,7 +22,8 @@
   NG.app = {
     get me() { return me.slot; },
     myStatus: () => me.status,
-    shelfFigures: () => NG.FIGURES.filter((f) => me.figures[f.id]),
+    // Gacha figures shown on the hideout shelf (tiny machine emoji; tap one to see the card).
+    shelfFigures: () => Object.entries(NG.GACHA).flatMap(([k, G]) => G.items.filter((i) => (me.gacha[k] || {})[i.id]).map((i) => ({ e: G.e, n: i.n, r: i.r, key: k, it: i }))),
     onDartRound(total) {
       const coins = Math.round(total / 5);
       addCoins(coins); gainExp(10 + Math.round(total / 10));
@@ -70,13 +71,9 @@
       $('#net-count').textContent = p2p && n > 0 ? `+${n}` : '';
       if ($('#w-settings').classList.contains('open')) renderSettings();
     },
-    showFigure(f) {
-      const r = NG.RARITY[f.r];
-      modal(`<div class="fig-big">${f.e}</div><h3>${esc(f.n)} <span class="rar" style="--rc:${r.c}">${r.n}</span></h3>
-        <p>${esc(f.f)}</p><button class="btn" data-close>닫기</button>`);
-    },
+    showFigure(f) { showGachaItem(f.key, f.it); },
     charInfo(c) {
-      const p = shared.players[c.i];
+      const p = shared.players[c.id];
       const st = c.status ? `${c.status.e} ${esc(c.status.t)}` : '상태 없음';
       const who = p && p.name ? esc(p.name) : esc(c.d.name) + ' (빈 캐릭터)';
       toast(`${who} · ${st}`);
@@ -219,50 +216,13 @@
   });
   $$('#emoji-pick button').forEach((b) => b.addEventListener('click', () => { $('#st-emoji').value = b.textContent; }));
 
-  // ---------- figures / gacha ----------
-  let figTab = 'anatomy';
+  // ---------- figures (gacha collections) ----------
+  let figTab = 'band';
   function renderFigures() {
     $$('#fig-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === figTab));
-    $('#fig-anatomy').hidden = figTab !== 'anatomy';
-    $('#fig-gacha').hidden = figTab === 'anatomy';
-    if (figTab !== 'anatomy') { renderGachaInto($('#fig-gacha'), figTab); return; }
-    const owned = NG.FIGURES.filter((f) => me.figures[f.id]).length;
-    $('#fig-count').textContent = `${owned} / ${NG.FIGURES.length}`;
-    $('#fig-grid').innerHTML = NG.FIGURES.map((f) => {
-      const n = me.figures[f.id];
-      const r = NG.RARITY[f.r];
-      return n
-        ? `<button class="fig" data-id="${f.id}" style="--rc:${r.c}"><span class="fe">${f.e}</span><span class="fn">${esc(f.n)}</span>${n > 1 ? `<em>×${n}</em>` : ''}</button>`
-        : `<div class="fig locked" style="--rc:${r.c}"><span class="fe">?</span><span class="fn">${r.n}</span></div>`;
-    }).join('');
-    $('#gacha-btn').disabled = me.coins < 30;
+    renderGachaInto($('#fig-gacha'), figTab);
   }
   $('#fig-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (b) { figTab = b.dataset.t; renderFigures(); } });
-  $('#fig-grid').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-id]'); if (b) NG.ui.showFigure(NG.FIGURES.find((f) => f.id === b.dataset.id));
-  });
-  $('#gacha-btn').addEventListener('click', () => {
-    if (me.coins < 30) { toast('🪙 코인이 부족해요. 미니게임으로 모아보세요!'); return; }
-    me.coins -= 30;
-    const roll = Math.random() * 100;
-    const rar = roll < NG.RARITY[3].w ? 3 : roll < NG.RARITY[3].w + NG.RARITY[2].w ? 2 : 1;
-    const pool = NG.FIGURES.filter((f) => f.r === rar);
-    const f = pool[Math.floor(Math.random() * pool.length)];
-    const isNew = !me.figures[f.id];
-    me.figures[f.id] = (me.figures[f.id] || 0) + 1;
-    if (!isNew) me.coins += 5;
-    gainExp(isNew ? 15 : 5); save(); renderHud();
-    const machine = $('#gacha-machine'); machine.classList.remove('spin'); void machine.offsetWidth; machine.classList.add('spin');
-    setTimeout(() => {
-      renderFigures();
-      const r = NG.RARITY[f.r];
-      modal(`<div class="capsule" style="--rc:${r.c}"><div class="fig-big pop">${f.e}</div></div>
-        <h3>${isNew ? '🆕 NEW! ' : ''}${esc(f.n)} <span class="rar" style="--rc:${r.c}">${r.n}</span></h3>
-        <p>${esc(f.f)}</p>${isNew ? '<p class="sub">진열대에 올려놨어요!</p>' : '<p class="sub">중복이라 5🪙 돌려받았어요.</p>'}
-        <button class="btn" data-close>좋아요</button>`, 'gacha');
-      if (f.r === 3 && isNew) NG.net.send({ type: 'sys', slot: me.slot, text: `✨ ${me.name}님이 에픽 피규어 [${f.n}]을(를) 뽑았어요!` });
-    }, 650);
-  });
 
   // ---------- gacha shop (band / 침착맨 / idol) ----------
   const gItem = (key, id) => NG.GACHA[key].items.find((x) => x.id === id);
@@ -351,8 +311,8 @@
         <p>최고 기록 <b>${me.best.dart}</b>점 · 점수 ÷ 5 = 🪙</p>
         <button class="btn primary" id="dart-go">다트 시작</button></div>`;
       $('#dart-go').onclick = () => { if (isNarrow()) closeWin($('#w-games')); NG.stage.startDart(); };
-    } else if (gameTab === 'quiz') startQuiz(box);
-    else if (gameTab === 'cell') startCell(box);
+    } else if (gameTab === 'bubble') startBubble(box);
+    else if (gameTab === 'fish') startFishing(box);
     else startStack(box);
   }
   $('#game-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-g]'); if (b) { gameTab = b.dataset.g; renderGames(); } });
@@ -361,89 +321,194 @@
     if (gameKeys(e)) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
 
-  // 🧬 세포 2048: merge cells up the chain of life. Arrow keys or swipe.
-  const CELL = [null, ['💧', '물방울'], ['🦠', '세포'], ['🧫', '조직'], ['🩸', '혈액'], ['🦴', '뼈'], ['💪', '근육'], ['🫁', '허파'],
-    ['🫀', '심장'], ['🧠', '뇌'], ['🧬', 'DNA'], ['🧍', '인간'], ['👑', '해부학 왕']];
-  function startCell(box) {
-    let g = Array.from({ length: 4 }, () => Array(4).fill(0));
-    let score = 0, over = false, best = me.best.cell || 0, merged = new Set(), born = null;
+  // Shared pixel canvas for the small games: a low-res buffer scaled up crisply to the panel width.
+  function pixelCanvas(cv, BW, BH) {
+    const buf = document.createElement('canvas'); buf.width = BW; buf.height = BH;
+    const b = buf.getContext('2d'), g = cv.getContext('2d');
+    return {
+      b,
+      toBuf(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * BW, y: (e.clientY - r.top) / r.height * BH }; },
+      present(overlay) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = cv.clientWidth, h = Math.round(w * BH / BW);
+        if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px'; }
+        g.imageSmoothingEnabled = false; g.drawImage(buf, 0, 0, cv.width, cv.height);
+        if (overlay) { g.save(); g.scale(cv.width / BW, cv.height / BH); overlay(g); g.restore(); }
+      },
+    };
+  }
+
+  // 🫧 버블 톡톡: bubbles drift up, tap to pop. 45 seconds, nothing to lose — just pop.
+  function startBubble(box) {
+    box.innerHTML = `<div class="cell-top"><span>톡톡 <b id="bb-score">0</b></span><span>최고 <b id="bb-best">${me.best.bubble || 0}</b></span><span class="sub">탭해서 터뜨리기</span></div>
+      <canvas class="stack-cv" aria-label="버블 톡톡"></canvas>
+      <p class="sub">떠오르는 비눗방울을 톡톡! 금색은 +5, 연달아 터뜨리면 콤보. 45초 동안 마음 편히.</p>`;
+    const cv = $('.stack-cv', box);
+    const BW = 120, BH = 150, ROUND = 45;
+    const P = pixelCanvas(cv, BW, BH), b = P.b;
+    const COLS = ['#a8c8e0', '#f2c4d8', '#b8e0c0', '#e0d0f0', '#f6e0a8'];
+    let bubbles = [], pops = [], score = 0, left = ROUND, over = false, spawnT = 0, combo = 0, lastPop = 0, msg = null;
+    const reset = () => { bubbles = []; pops = []; score = 0; left = ROUND; over = false; combo = 0; $('#bb-score').textContent = 0; };
     const spawn = () => {
-      const empty = [];
-      g.forEach((r, y) => r.forEach((v, x) => { if (!v) empty.push([x, y]); }));
-      if (!empty.length) return;
-      const [x, y] = empty[Math.floor(Math.random() * empty.length)];
-      g[y][x] = Math.random() < 0.9 ? 1 : 2; born = `${x},${y}`;
-    };
-    const canMove = () => g.some((r, y) => r.some((v, x) => !v || (x < 3 && r[x + 1] === v) || (y < 3 && g[y + 1][x] === v)));
-    const slide = (row) => {
-      const a = row.filter(Boolean), out = [], hits = [];
-      for (let i = 0; i < a.length; i++) {
-        if (a[i] === a[i + 1]) { const v = a[i] + 1; out.push(v); hits.push(out.length - 1); score += 2 ** v; i++; } else out.push(a[i]);
-      }
-      while (out.length < 4) out.push(0);
-      return { out, hits };
-    };
-    const move = (dir) => {
-      if (over) return;
-      const before = JSON.stringify(g);
-      merged = new Set();
-      for (let i = 0; i < 4; i++) {
-        let line = dir === 'left' || dir === 'right' ? g[i].slice() : g.map((r) => r[i]);
-        if (dir === 'right' || dir === 'down') line.reverse();
-        let { out, hits } = slide(line);
-        if (dir === 'right' || dir === 'down') { out = out.reverse(); hits = hits.map((h) => 3 - h); }
-        for (let k = 0; k < 4; k++) {
-          if (dir === 'left' || dir === 'right') g[i][k] = out[k]; else g[k][i] = out[k];
-        }
-        hits.forEach((h) => merged.add(dir === 'left' || dir === 'right' ? `${h},${i}` : `${i},${h}`));
-      }
-      if (JSON.stringify(g) === before) return;
-      spawn();
-      if (!canMove()) finish();
-      draw();
+      const r = 5 + Math.random() * 7, gold = Math.random() < 0.06;
+      bubbles.push({ x: r + Math.random() * (BW - r * 2), y: BH + r, r, vy: 9 + Math.random() * 10 + (ROUND - left) * 0.25, ph: Math.random() * 6, c: gold ? '#f2c94c' : COLS[Math.floor(Math.random() * COLS.length)], gold });
     };
     const finish = () => {
       over = true;
-      const coins = Math.min(80, Math.floor(score / 40));
-      addCoins(coins); gainExp(10 + Math.floor(score / 200));
-      const top = Math.max(...g.flat());
-      if (score > best) { best = me.best.cell = score; }
+      const coins = Math.min(60, Math.floor(score / 3));
+      addCoins(coins); gainExp(5 + Math.floor(score / 5));
+      if (score > (me.best.bubble || 0)) { me.best.bubble = score; $('#bb-best').textContent = score; }
       save();
-      setTimeout(() => {
-        const ov = document.createElement('div');
-        ov.className = 'g-over';
-        ov.innerHTML = `<b>${CELL[top][0]} ${CELL[top][1]}까지!</b><span>${score}점 · +${coins}🪙</span><button class="btn primary">다시 하기</button>`;
-        $('.cell-board', box).appendChild(ov);
-        $('button', ov).onclick = () => startCell(box);
-        if (top >= 9) NG.net.send({ type: 'sys', slot: me.slot, text: `🧬 ${me.name}님이 세포 2048에서 ${CELL[top][1]}까지 키웠어요! (${score}점)` });
-      }, 300);
+      msg = `${score}개 톡톡! +${coins}🪙`;
+      if (score >= 80) NG.net.send({ type: 'sys', slot: me.slot, text: `🫧 ${me.name}님이 비눗방울을 ${score}개 터뜨렸어요!` });
     };
-    const draw = () => {
-      $('#cell-score').textContent = score; $('#cell-best').textContent = Math.max(best, score);
-      $('.cell-board', box).innerHTML = g.map((r, y) => r.map((v, x) => {
-        const k = `${x},${y}`;
-        return `<div class="cell lv${Math.min(v, 12)} ${merged.has(k) ? 'pop' : ''} ${born === k ? 'born' : ''}">${v ? `<span>${CELL[v][0]}</span><small>${CELL[v][1]}</small>` : ''}</div>`;
-      }).join('')).join('');
-    };
-    box.innerHTML = `<div class="cell-top"><span>점수 <b id="cell-score">0</b></span><span>최고 <b id="cell-best">0</b></span><button class="btn" id="cell-new">새 판</button></div>
-      <div class="cell-board" tabindex="0" aria-label="세포 2048 보드"></div>
-      <p class="sub">방향키나 스와이프로 밀어서 같은 것끼리 합쳐요. 💧→🦠→🧫→🩸→🦴→💪→🫁→🫀→🧠→🧬→🧍→👑</p>`;
-    $('#cell-new').onclick = () => startCell(box);
-    const board = $('.cell-board', box);
-    let sw = null;
-    board.addEventListener('pointerdown', (e) => { sw = { x: e.clientX, y: e.clientY }; board.setPointerCapture(e.pointerId); });
-    board.addEventListener('pointerup', (e) => {
-      if (!sw) return;
-      const dx = e.clientX - sw.x, dy = e.clientY - sw.y; sw = null;
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
-      move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    cv.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (over) { reset(); return; }
+      const p = P.toBuf(e);
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const q = bubbles[i];
+        if (Math.hypot(p.x - q.x, p.y - q.y) <= q.r + 3) {
+          bubbles.splice(i, 1);
+          const now = performance.now();
+          combo = now - lastPop < 650 ? combo + 1 : 1; lastPop = now;
+          const gain = (q.gold ? 5 : 1) + (combo >= 5 ? 1 : 0);
+          score += gain; $('#bb-score').textContent = score;
+          for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; pops.push({ x: q.x, y: q.y, vx: Math.cos(a) * 30, vy: Math.sin(a) * 30, t: 0.35, c: q.c }); }
+          pops.push({ x: q.x, y: q.y - 4, vx: 0, vy: -18, t: 0.7, txt: `+${gain}` });
+          return;
+        }
+      }
     });
-    gameKeys = (e) => {
-      const d = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.key];
-      if (!d) return false;
-      move(d); return true;
+    let last = performance.now();
+    const loop = (now) => {
+      if (!document.body.contains(cv)) return;
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (!over) {
+        left -= dt; if (left <= 0) { left = 0; finish(); }
+        spawnT -= dt; if (spawnT <= 0) { spawn(); spawnT = 0.35 + Math.random() * 0.5; }
+      }
+      b.fillStyle = '#d8d2c6'; b.fillRect(0, 0, BW, BH);
+      b.fillStyle = '#c6bfb1'; for (let x = 5; x < BW; x += 10) b.fillRect(x, 0, 1, BH);
+      b.fillStyle = '#8b7f77'; b.fillRect(0, BH - 8, BW, 8);
+      bubbles = bubbles.filter((q) => {
+        q.y -= q.vy * dt; q.ph += dt * 2;
+        const x = q.x + Math.sin(q.ph) * 2;
+        b.fillStyle = q.c; b.globalAlpha = 0.85; b.beginPath(); b.arc(x, q.y, q.r, 0, 7); b.fill(); b.globalAlpha = 1;
+        b.strokeStyle = '#2b221e'; b.lineWidth = 1; b.beginPath(); b.arc(x, q.y, q.r, 0, 7); b.stroke();
+        b.fillStyle = 'rgba(255,255,255,.85)'; b.fillRect(Math.round(x - q.r * 0.45), Math.round(q.y - q.r * 0.5), 2, 2);
+        return q.y > -q.r - 2;
+      });
+      pops = pops.filter((p) => {
+        p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        if (!p.txt) { b.fillStyle = p.c; b.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
+        return p.t > 0;
+      });
+      b.fillStyle = '#2b221e'; b.fillRect(0, 0, BW, 4);
+      b.fillStyle = left < 10 ? '#c0563f' : '#c0703a'; b.fillRect(0, 0, BW * left / ROUND, 4);
+      P.present((g) => {
+        g.font = '8px Galmuri11, monospace'; g.textAlign = 'center'; g.fillStyle = '#2b221e';
+        for (const p of pops) if (p.txt) { g.globalAlpha = Math.min(1, p.t * 2); g.fillText(p.txt, p.x, p.y); g.globalAlpha = 1; }
+        if (combo >= 3 && performance.now() - lastPop < 650 && !over) g.fillText(`콤보 ×${combo}`, BW / 2, 16);
+        if (over) { g.fillStyle = 'rgba(43,34,30,.78)'; g.fillRect(0, BH / 2 - 16, BW, 30); g.fillStyle = '#f6d58e'; g.fillText(msg, BW / 2, BH / 2 - 3); g.fillText('탭해서 다시', BW / 2, BH / 2 + 9); }
+      });
+      requestAnimationFrame(loop);
     };
-    spawn(); spawn(); draw();
+    gameKeys = null;
+    requestAnimationFrame(loop);
+  }
+
+  // 🎣 멍 낚시: cast, watch the float bob, tap when it dips. Collect fish (and the odd boot).
+  const FISH = [
+    { id: 'crucian', e: '🐟', n: '붕어', r: 1, cm: [12, 28] }, { id: 'tropical', e: '🐠', n: '열대어', r: 1, cm: [6, 14] },
+    { id: 'shrimp', e: '🦐', n: '새우', r: 1, cm: [4, 10] }, { id: 'crab', e: '🦀', n: '꽃게', r: 1, cm: [8, 18] },
+    { id: 'boot', e: '👢', n: '낡은 장화', r: 0, cm: [25, 30] }, { id: 'can', e: '🥫', n: '빈 깡통', r: 0, cm: [10, 12] },
+    { id: 'puffer', e: '🐡', n: '복어', r: 2, cm: [15, 35] }, { id: 'squid', e: '🦑', n: '오징어', r: 2, cm: [20, 45] },
+    { id: 'octopus', e: '🐙', n: '문어', r: 2, cm: [30, 70] }, { id: 'turtle', e: '🐢', n: '바다거북', r: 3, cm: [50, 90] },
+    { id: 'whale', e: '🐳', n: '아기고래(?)', r: 3, cm: [180, 300] }, { id: 'gem', e: '💎', n: '반짝이는 보석', r: 3, cm: [2, 4] },
+  ];
+  const FISH_W = { 0: 14, 1: 56, 2: 24, 3: 6 };
+  function startFishing(box) {
+    me.fish = me.fish || {};
+    const caught = () => FISH.filter((f) => me.fish[f.id]).length;
+    box.innerHTML = `<div class="cell-top"><span>도감 <b id="fs-col">${caught()}</b> / ${FISH.length}</span><span>오늘 <b id="fs-today">0</b>마리</span><span class="sub">탭 / Space</span></div>
+      <canvas class="stack-cv" aria-label="멍 낚시"></canvas>
+      <p class="sub" id="fs-msg">탭해서 찌를 던지고, 찌가 <b>쑥 들어가면</b> 바로 탭!</p>`;
+    const cv = $('.stack-cv', box);
+    const BW = 120, BH = 150;
+    const P = pixelCanvas(cv, BW, BH), b = P.b;
+    let state = 'idle', timer = 0, bobX = 80, bobY = 92, today = 0, ripple = 0, show = null, castT = 0;
+    const say = (h) => { $('#fs-msg').innerHTML = h; };
+    const pickFish = () => {
+      const tot = FISH.reduce((a, f) => a + FISH_W[f.r] / FISH.filter((x) => x.r === f.r).length, 0);
+      let roll = Math.random() * tot;
+      for (const f of FISH) { roll -= FISH_W[f.r] / FISH.filter((x) => x.r === f.r).length; if (roll <= 0) return f; }
+      return FISH[0];
+    };
+    const act = () => {
+      if (state === 'idle' || state === 'result') {
+        state = 'cast'; castT = 0; bobX = 55 + Math.random() * 50; show = null;
+        say('찌가 날아가요… 🎣'); return;
+      }
+      if (state === 'wait') { state = 'idle'; say('앗, 너무 일렀어요. 다시 던져볼까요?'); return; }
+      if (state === 'bite') {
+        const f = pickFish();
+        const cm = Math.round(f.cm[0] + Math.random() * (f.cm[1] - f.cm[0]));
+        const isNew = !me.fish[f.id];
+        me.fish[f.id] = (me.fish[f.id] || 0) + 1;
+        const coins = [1, 2, 5, 15][f.r];
+        addCoins(coins); gainExp(2 + f.r * 3); save();
+        today++; $('#fs-today').textContent = today; $('#fs-col').textContent = caught();
+        show = { f, t: 0 }; state = 'result';
+        say(`${f.e} <b>${esc(f.n)}</b> ${cm}cm 낚았다!${isNew ? ' 🆕' : ''} +${coins}🪙 · 탭하면 다시 던져요`);
+        if (f.r === 3) NG.net.send({ type: 'sys', slot: me.slot, text: `🎣 ${me.name}님이 ${f.e} ${f.n}(${cm}cm)을(를) 낚았어요!` });
+      }
+    };
+    cv.addEventListener('pointerdown', (e) => { e.preventDefault(); act(); });
+    gameKeys = (e) => { if (e.code !== 'Space') return false; if (!e.repeat) act(); return true; };
+    let last = performance.now();
+    const loop = (now) => {
+      if (!document.body.contains(cv)) return;
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const t = now / 1000;
+      if (state === 'cast') { castT += dt * 2.2; if (castT >= 1) { state = 'wait'; timer = 2 + Math.random() * 6; ripple = 0.6; say('기다리는 중… 찌를 멍하니 바라봐요'); } }
+      else if (state === 'wait') { timer -= dt; if (timer <= 0) { state = 'bite'; timer = 0.85; ripple = 0.6; } }
+      else if (state === 'bite') { timer -= dt; if (timer <= 0) { state = 'idle'; say('놓쳤어요… 🫠 탭해서 다시 던져요'); } }
+      if (show) show.t += dt;
+      // sky, hills, water, dock
+      const sky = b.createLinearGradient(0, 0, 0, 70); sky.addColorStop(0, '#b9c3c9'); sky.addColorStop(1, '#dcd6c8');
+      b.fillStyle = sky; b.fillRect(0, 0, BW, 70);
+      b.fillStyle = '#9fae9a'; for (let x = 0; x < BW; x += 2) b.fillRect(x, 62 - Math.sin(x * 0.07) * 6 - Math.sin(x * 0.19) * 2, 2, 12);
+      b.fillStyle = '#5f7e85'; b.fillRect(0, 72, BW, BH - 72);
+      b.fillStyle = '#7d9aa0'; for (let i = 0; i < 14; i++) { const x = (i * 37 + t * 6 * (i % 2 ? 1 : -1)) % (BW + 20) - 10, y = 78 + (i * 23) % 64; b.fillRect(Math.round(x), y, 6, 1); }
+      b.fillStyle = '#8a6a50'; b.fillRect(0, 96, 28, 6); b.fillStyle = '#5e4636'; b.fillRect(4, 102, 3, 30); b.fillRect(20, 102, 3, 30);
+      // rod & line
+      b.strokeStyle = '#5e4636'; b.lineWidth = 2; b.beginPath(); b.moveTo(14, 96); b.lineTo(30, 70); b.stroke();
+      let bx = bobX, by = bobY;
+      if (state === 'cast') { const k = Math.min(1, castT); bx = 30 + (bobX - 30) * k; by = 70 + (bobY - 70) * k - Math.sin(k * Math.PI) * 30; }
+      else if (state === 'wait') by = bobY + Math.sin(t * 2.5) * 0.8;
+      else if (state === 'bite') by = bobY + 3 + Math.sin(t * 30) * 1.2;
+      const showBob = state !== 'idle' && state !== 'result';
+      if (showBob) {
+        b.strokeStyle = 'rgba(43,34,30,.6)'; b.lineWidth = 1; b.beginPath(); b.moveTo(30, 70); b.quadraticCurveTo((30 + bx) / 2, Math.max(70, by) + 6, bx, by - 3); b.stroke();
+        if (ripple > 0) { ripple -= dt; b.strokeStyle = 'rgba(236,228,210,.8)'; b.beginPath(); b.ellipse(bx, bobY + 2, (0.6 - ripple) * 20 + 3, (0.6 - ripple) * 5 + 1, 0, 0, 7); b.stroke(); }
+        b.fillStyle = '#ece4d2'; b.fillRect(Math.round(bx) - 2, Math.round(by) - 3, 4, 3);
+        b.fillStyle = '#c0403a'; b.fillRect(Math.round(bx) - 2, Math.round(by), 4, 3);
+        b.fillStyle = '#2b221e'; b.fillRect(Math.round(bx), Math.round(by) - 6, 1, 3);
+      }
+      P.present((g) => {
+        g.textAlign = 'center';
+        if (state === 'bite') { g.font = 'bold 14px Galmuri11, monospace'; g.fillStyle = '#c0403a'; g.fillText('!', bx, by - 10); }
+        if (state === 'idle') { g.font = '8px Galmuri11, monospace'; g.fillStyle = '#2b221e'; g.fillText('탭해서 던지기', BW / 2, 40); }
+        if (show) {
+          const k = Math.min(1, show.t * 3);
+          g.font = `${Math.round(10 + k * 16)}px sans-serif`; g.fillText(show.f.e, BW / 2, 50 - k * 6);
+          g.font = '8px Galmuri11, monospace'; g.fillStyle = '#2b221e'; g.fillText(show.f.n, BW / 2, 62);
+        }
+      });
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
   }
 
   // 📚 만화책 쌓기: one-tap stacker. Drop the sliding book on the pile; overhang is cut off.
@@ -536,38 +601,6 @@
   }
 
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-
-  function startQuiz(box) {
-    const qs = shuffle([...NG.QUIZ]).slice(0, 5);
-    let i = 0, score = 0;
-    const show = () => {
-      if (i >= qs.length) {
-        const coins = score * 5;
-        addCoins(coins); gainExp(score * 6);
-        if (score > me.best.quiz) me.best.quiz = score;
-        save();
-        box.innerHTML = `<div class="game-intro"><div class="big">${score >= 4 ? '🧠' : score >= 2 ? '🙂' : '🫠'}</div>
-          <h3>${score} / ${qs.length} 정답!</h3><p>+${coins}🪙 · 최고 ${me.best.quiz}/5</p>
-          <button class="btn primary" id="quiz-again">한 번 더</button></div>`;
-        $('#quiz-again').onclick = () => startQuiz(box);
-        if (score === 5) NG.net.send({ type: 'sys', slot: me.slot, text: `🧠 ${me.name}님이 해부학 퀴즈 만점!` });
-        return;
-      }
-      const q = qs[i];
-      const opts = shuffle(q.a.map((a, k) => ({ a, ok: k === q.c })));
-      box.innerHTML = `<div class="quiz"><div class="qn">Q${i + 1}/${qs.length} · 정답 ${score}</div><h3>${esc(q.q)}</h3>
-        <div class="opts">${opts.map((o, k) => `<button class="opt" data-k="${k}">${esc(o.a)}</button>`).join('')}</div></div>`;
-      $('.opts', box).onclick = (e) => {
-        const b = e.target.closest('[data-k]'); if (!b || box.dataset.lock) return;
-        box.dataset.lock = 1;
-        const ok = opts[+b.dataset.k].ok;
-        if (ok) score++;
-        $$('.opt', box).forEach((el, k) => el.classList.add(opts[k].ok ? 'right' : k === +b.dataset.k ? 'wrong' : 'dim'));
-        setTimeout(() => { delete box.dataset.lock; i++; show(); }, 900);
-      };
-    };
-    show();
-  }
 
   // ---------- sticky-note board ----------
   const NOTE_COLORS = ['#fff27a', '#ffb3c7', '#a8e6ff', '#b8f5a6', '#e2c4ff', '#ffd59e'];

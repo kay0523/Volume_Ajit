@@ -721,7 +721,7 @@
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     owned.slice(0, max).forEach((f, i) => {
       const x = s.x0 + 11 + i * 18, y = s.y + Math.sin(t * 2 + i) * (f.r === 3 ? 1.2 : 0);
-      ctx.font = '13px sans-serif'; ctx.fillText(f.e, x, y - 1);
+      ctx.font = '12px sans-serif'; ctx.fillText(f.e, x, y - 1);
       layout.figureHits.push({ x, y: y - 7, f });
     });
     ctx.textAlign = 'left';

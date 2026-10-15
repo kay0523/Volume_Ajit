@@ -41,7 +41,7 @@
     ['food', '침착맨 (야식 타임)', '야식 앞에서는 잠시 침착함을 내려놓음.', 1, 'chicken', { top: '#c09a4e' }],
     ['pajama', '침착맨 (잠옷)', '방송 끝. 이제 진짜 잘 시간.', 1, 'pillow', { top: '#a8c8e0', pants: '#a8c8e0', hat: 'beanie', hatColor: '#7cc6ff' }],
     ['suit', '침착맨 (정장)', '중요한 날 버전. 넥타이가 어색하다.', 2, null, { top: '#2b2233', pants: '#2b2233' }],
-    ['coffee', '침착맨 (아지트 바)', '볼륨팀 아지트에서 핸드드립 한 잔.', 1, 'coffee', { top: '#8a6a4a', coat: false }],
+    ['coffee', '침착맨 (아지트 바)', '뚠뚠 아지트에서 핸드드립 한 잔.', 1, 'coffee', { top: '#8a6a4a', coat: false }],
     ['walk', '침착맨 (산책)', '생각 정리하러 동네 한 바퀴.', 1, null, { top: '#6f8a62', hat: 'cap', hatColor: '#3a3f55' }],
     ['gold', '황금 침착맨', '전설의 황금 에디션. 뽑으면 자랑 필수.', 3, 'crown', { top: '#d8b24a', pants: '#b8923a', hair: '#8a6a2a' }],
   ].map(([id, n, f, r, prop, l]) => ({ id: 'c-' + id, n, g: '침착맨', f, r, prop, look: look({ ...CHIM_BASE, ...l }) }));

@@ -1205,7 +1205,7 @@
     for (const c of chars.filter((x) => x.gone)) { removeChar(c.id); if (NG.stage.onLeave) NG.stage.onLeave(c.id, c.name); }
     updateDart(dt);
     const mood = timeMood();
-    const musicOn = !!(NG.music && NG.music.playing);
+    const musicOn = !!(NG.music && (NG.music.playing || NG.music.shared));
     const { bw, bh, q } = view;
     updateCamera(dt);
     const cx = view.camX;

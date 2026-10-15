@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>뚠뚠 아지트</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
-  <link rel="stylesheet" href="style.css?v=mv9dshmj">
+  <link rel="stylesheet" href="style.css?v=mv9ec4sb">
 </head>
 <body>
   <div id="app">
@@ -22,7 +22,7 @@
         <button data-win="w-figures" title="피규어"><span>🧸</span><em>피규어</em></button>
         <button data-win="w-games" title="미니게임"><span>🎮</span><em>게임</em></button>
         <button data-win="w-settings" title="설정"><span>⚙️</span><em>설정</em></button>
-        <button id="music-nav" title="재즈 틀기/끄기">🎷</button>
+        <button id="music-nav" data-win="w-music" title="주크박스">🎷</button>
         <button id="mini-toggle" title="미니 모드">⤡</button>
       </nav>
     </header>
@@ -48,9 +48,24 @@
     <div class="win-body">
       <p class="sub">가고 싶은 곳을 고르면 캐릭터가 걸어가서 쉬어요. 화면에서 가구를 직접 눌러도 돼요.</p>
       <div id="rest-list" class="rest-list"></div>
-      <div class="music-row"><button class="btn primary" id="music-btn">▶ 재즈 틀기</button>
-        <label class="vol">🔈<input id="music-vol" type="range" min="0" max="1" step="0.05" value="0.5" aria-label="음량"></label></div>
-      <p class="sub">주크박스 음악은 내 기기에서만 나와요.</p>
+      <button class="btn primary" data-win="w-music">🎷 주크박스 열기</button>
+    </div>
+  </section>
+
+  <!-- shared jukebox -->
+  <section id="w-music" class="win panel" style="top:64px;right:12px">
+    <div class="win-head"><span>🎷 주크박스</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-body">
+      <div class="mu-now"><b id="mu-now">지금 아무것도 안 나와요</b><small id="mu-by"></small></div>
+      <div class="yt-wrap" id="yt-wrap" hidden><div id="yt-box"></div></div>
+      <form id="mu-form" class="add-row"><input id="mu-url" placeholder="유튜브 주소 붙여넣기" aria-label="유튜브 주소" autocomplete="off"><button class="btn primary">모두에게 틀기</button></form>
+      <div class="music-row">
+        <label class="mu-listen"><input type="checkbox" id="mu-listen"> 공유 음악 듣기</label>
+        <button class="btn" id="mu-stop">■ 정지</button>
+      </div>
+      <label class="vol">🔈<input id="music-vol" type="range" min="0" max="1" step="0.05" value="0.5" aria-label="음량"></label>
+      <p class="sub" id="mu-note">틀면 지금 아지트에 있는 모두에게 같은 곡이 같은 위치로 나와요. 듣기 싫으면 "공유 음악 듣기"를 끄세요.</p>
+      <button class="btn" id="music-btn">▶ 기본 재즈 (나만 듣기)</button>
     </div>
   </section>
 
@@ -137,12 +152,12 @@
   <div id="modal" class="modal"><div class="modal-card"></div></div>
   <div id="toast" class="toast"></div>
 
-  <script src="js/data.js?v=mv9dshmj"></script>
-  <script src="js/gacha.js?v=mv9dshmj"></script>
-  <script src="vendor/trystero.min.js?v=mv9dshmj"></script>
-  <script src="js/net.js?v=mv9dshmj"></script>
-  <script src="js/music.js?v=mv9dshmj"></script>
-  <script src="js/stage.js?v=mv9dshmj"></script>
-  <script src="js/app.js?v=mv9dshmj"></script>
+  <script src="js/data.js?v=mv9ec4sb"></script>
+  <script src="js/gacha.js?v=mv9ec4sb"></script>
+  <script src="vendor/trystero.min.js?v=mv9ec4sb"></script>
+  <script src="js/net.js?v=mv9ec4sb"></script>
+  <script src="js/music.js?v=mv9ec4sb"></script>
+  <script src="js/stage.js?v=mv9ec4sb"></script>
+  <script src="js/app.js?v=mv9ec4sb"></script>
 </body>
 </html>

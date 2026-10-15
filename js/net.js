@@ -6,7 +6,7 @@
   const LOCAL_KEY = 'nogari.localState.v1';
   let bc = null;
 
-  const EMPTY = () => ({ players: {}, chat: [], notes: [], del: {} });
+  const EMPTY = () => ({ players: {}, chat: [], notes: [], del: {}, music: null });
   function localState() {
     try { return { ...EMPTY(), ...JSON.parse(localStorage.getItem(LOCAL_KEY)) }; } catch { return EMPTY(); }
   }
@@ -38,6 +38,7 @@
       }
       case 'emote': return slot ? { type: 'emote', slot, e: str(m.e, 8) } : null;
       case 'act': return slot ? { type: 'act', slot, a: str(m.a, 16) } : null;
+      case 'music': return { type: 'music', slot, name: str(m.name, 20), vid: /^[\w-]{11}$/.test(m.vid || '') ? m.vid : '', startedAt: Number(m.startedAt) || t, t };
       case 'pos': {
         if (!slot) return null;
         const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
@@ -62,6 +63,8 @@
     } else if (m.type === 'noteDel') {
       if (!s.del[m.id]) { s.del[m.id] = m.t || Date.now(); s.notes = s.notes.filter((o) => o.id !== m.id); changed = true; }
       const ids = Object.keys(s.del); if (ids.length > 300) ids.slice(0, ids.length - 300).forEach((k) => delete s.del[k]);
+    } else if (m.type === 'music') {
+      if (!s.music || (s.music.t || 0) < m.t) { s.music = m; changed = true; }
     } else if (m.type === 'presence') {
       const old = s.players[m.slot];
       if (!old || (old.t || 0) < m.t) { s.players[m.slot] = { name: m.name, status: m.status, look: m.look, t: m.t }; changed = true; }
@@ -73,7 +76,7 @@
   // What this page has already shown, so changes are emitted once per page even when tabs share storage.
   let known = null;
   function remember(st) {
-    known = { chat: new Set(st.chat.map((c) => c.id)), notes: {}, del: { ...st.del }, players: {} };
+    known = { chat: new Set(st.chat.map((c) => c.id)), notes: {}, del: { ...st.del }, players: {}, music: (st.music && st.music.t) || 0 };
     st.notes.forEach((n) => { known.notes[n.id] = n.t || 0; });
     Object.entries(st.players).forEach(([k, p]) => { known.players[k] = (p && p.t) || 0; });
     return st;
@@ -85,6 +88,7 @@
     if (m.type === 'note') { if (known.del[m.id] || (known.notes[m.id] || 0) >= m.t) return false; known.notes[m.id] = m.t; return true; }
     if (m.type === 'noteDel') { if (known.del[m.id]) return false; known.del[m.id] = m.t; return true; }
     if (m.type === 'presence') { if ((known.players[m.slot] || 0) >= m.t) return false; known.players[m.slot] = m.t; return true; }
+    if (m.type === 'music') { if (known.music >= m.t) return false; known.music = m.t; return true; }
     return false;
   }
   const accept = (m) => { if (m.type !== 'emote' && m.type !== 'act' && m.type !== 'pos') localApply(m); if (fresh(m)) emit(m); };
@@ -105,14 +109,14 @@
     msg.onMessage = (m) => take(m);
     sync.onMessage = (st) => {
       if (!st || typeof st !== 'object') return;
-      (Array.isArray(st.chat) ? st.chat : []).slice(-120).forEach(take);
+      if (st.music) take({ ...st.music, type: 'music' });
       (Array.isArray(st.notes) ? st.notes : []).slice(-80).forEach((n) => take({ ...n, type: 'note' }));
       Object.entries(st.del || {}).slice(-300).forEach(([id, t]) => take({ type: 'noteDel', id, t }));
       Object.entries(st.players || {}).forEach(([slot, p]) => take({ ...p, type: 'presence', slot }));
     };
     const peers = () => Object.keys(room.getPeers()).length;
     const changed = () => { NG.ui && NG.ui.setNet(true, peers()); };
-    room.onPeerJoin = (id) => { sync.send(localState(), { target: id }).catch(() => {}); changed(); };
+    room.onPeerJoin = (id) => { sync.send({ ...localState(), chat: [] }, { target: id }).catch(() => {}); changed(); };
     room.onPeerLeave = () => changed();
     p2p = { room, msg, peers };
     setTimeout(changed, 0);
@@ -137,7 +141,9 @@
     }).catch(() => {});
     const err = () => NG.ui && NG.ui.setNet(false);
     const seen = new Set();
+    let firstChat = true;
     db.collection('chat').orderBy('t', 'desc').limit(60).onSnapshot((snap) => {
+      if (firstChat) { firstChat = false; snap.docs.forEach((d) => { const m = d.data(); if (m) seen.add(m.id); }); NG.ui && NG.ui.setNet(true); return; }
       const added = snap.docChanges().filter((c) => c.type === 'added').map((c) => c.doc.data())
         .filter((m) => m && !seen.has(m.id)).sort((a, b) => a.t - b.t);
       added.forEach((m) => { seen.add(m.id); out(m); });
@@ -149,6 +155,9 @@
         if (c.type === 'removed') out({ type: 'noteDel', id: c.doc.id });
         else if (n) out({ ...n, type: 'note', id: c.doc.id });
       }
+    }, err);
+    db.collection('music').onSnapshot((snap) => {
+      for (const c of snap.docChanges()) { const d = c.doc.data(); if (c.type !== 'removed' && d) out({ ...d, type: 'music' }); }
     }, err);
     db.collection('players').onSnapshot((snap) => {
       for (const c of snap.docChanges()) {
@@ -210,7 +219,7 @@
 
     send(m) {
       if (m.type === 'chat' || m.type === 'sys') { m.id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; m.t = Date.now(); }
-      if (m.type === 'note' || m.type === 'presence' || m.type === 'noteDel') m.t = Date.now();
+      if (m.type === 'note' || m.type === 'presence' || m.type === 'noteDel' || m.type === 'music') m.t = Date.now();
       if (this.mode === 'p2p') {
         const c = sanitize(m); if (!c) return;
         accept(c);
@@ -224,6 +233,7 @@
         if (m.type === 'chat' || m.type === 'sys') db.collection('chat').doc(m.id).set(clean(m)).catch(fail);
         else if (m.type === 'note') { const { type, ...n } = m; db.collection('notes').doc(m.id).set(clean({ ...n, t: n.t || Date.now() })).catch(fail); void type; }
         else if (m.type === 'noteDel') db.collection('notes').doc(m.id).delete().catch(fail);
+        else if (m.type === 'music') { const c = sanitize(m); if (c) db.collection('music').doc('now').set(clean(c)).catch(fail); }
         else if (m.type === 'presence') db.collection('players').doc('p' + m.slot).set(clean({ slot: m.slot, name: m.name || '', status: m.status || null, look: m.look || null, t: Date.now() })).catch(fail);
         else if (m.type === 'emote' || m.type === 'act' || m.type === 'pos') {
           if (m.type !== 'pos') emit(m);

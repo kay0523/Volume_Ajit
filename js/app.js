@@ -6,7 +6,7 @@
   const KEY = 'nogari.me.v1';
 
   // ---------- persistent personal state ----------
-  const def = { slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 60, figures: {}, shelf: true,
+  const def = { listen: true, slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 60, figures: {}, shelf: true,
     caffeine: 80, focus: 90, exp: 0, lv: 1, best: { dart: 0 }, chatOpacity: 0.55, lastTick: Date.now() };
   let me;
   try { me = { ...def, ...JSON.parse(localStorage.getItem(KEY)) }; } catch { me = { ...def }; }
@@ -17,7 +17,7 @@
   me.gacha = me.gacha || {}; me.holo = me.holo || {};
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch { /* blocked */ } };
 
-  const shared = { players: {}, notes: [] };
+  const shared = { players: {}, notes: [], music: null };
 
   NG.app = {
     get me() { return me.slot; },
@@ -94,7 +94,7 @@
   function focusWin(w) { w.style.zIndex = ++zTop; }
   function openWin(id) {
     const w = $('#' + id);
-    if (isNarrow()) $$('.win.panel.open').forEach((o) => o !== w && o.classList.remove('open'));
+    $$('.win.panel.open').forEach((o) => { if (o !== w) closeWin(o); }); // opening a tab closes the others
     w.classList.add('open'); focusWin(w); clampWin(w);
     $$(`[data-win="${id}"]`).forEach((b) => b.classList.add('on'));
     if (id === 'w-figures') renderFigures();
@@ -102,6 +102,7 @@
     if (id === 'w-board') renderBoard();
     if (id === 'w-status') renderStatus();
     if (id === 'w-settings') renderSettings();
+    if (id === 'w-music') renderMusic();
     if (id === 'w-rest') renderRest();
   }
   function closeWin(w) { w.classList.remove('open'); $$(`[data-win="${w.id}"]`).forEach((b) => b.classList.remove('on')); }
@@ -806,7 +807,7 @@
     const s = NG.stage.spots.find((x) => x.id === id);
     if (!s) return;
     const fx = s.fx;
-    if (fx.music) { const on = NG.music.toggle(); renderMusic(); toast(on ? '🎷 주크박스 ON — 재즈가 흘러요' : '🎷 주크박스 OFF'); return; }
+    if (fx.music) { openWin('w-music'); return; }
     const now = Date.now();
     if (now - (spotCool[id] || 0) < 45000) { toast(fx.msg); return; }
     spotCool[id] = now;
@@ -830,15 +831,88 @@
     NG.stage.onAction('spot:' + b.dataset.spot);
     if (isNarrow()) closeWin($('#w-rest')); else setTimeout(renderRest, 50);
   });
-  function renderMusic() {
-    const on = NG.music.playing;
-    $('#music-btn').textContent = on ? '⏸ 재즈 끄기' : '▶ 재즈 틀기';
-    $('#music-nav').classList.toggle('on', on);
+  // ---------- shared jukebox: a YouTube video everyone in the room hears at the same position ----------
+  const parseVid = (u) => {
+    const s = String(u || '').trim();
+    const m = s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+    return m ? m[1] : /^[\w-]{11}$/.test(s) ? s : null;
+  };
+  let ytLoading = null, yt = null, ytTitle = '', ytFailed = false;
+  function loadYT() {
+    if (window.YT && window.YT.Player) return Promise.resolve();
+    if (ytLoading) return ytLoading;
+    ytLoading = new Promise((res, rej) => {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (prev) prev(); res(); };
+      const sc = document.createElement('script');
+      sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = () => rej(new Error('load'));
+      document.head.appendChild(sc);
+      setTimeout(() => rej(new Error('timeout')), 10000);
+    });
+    ytLoading.catch(() => { ytLoading = null; ytFailed = true; renderMusic(); });
+    return ytLoading;
   }
-  const toggleMusic = () => { NG.music.toggle(); renderMusic(); };
-  $('#music-btn').addEventListener('click', toggleMusic);
-  $('#music-nav').addEventListener('click', toggleMusic);
-  $('#music-vol').addEventListener('input', (e) => NG.music.setVolume(+e.target.value));
+  async function ensurePlayer() {
+    await loadYT();
+    if (yt) return yt;
+    $('#yt-wrap').hidden = false;
+    return new Promise((res) => {
+      const p = new window.YT.Player('yt-box', {
+        width: '100%', height: '100%', playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
+        events: {
+          onReady: () => { yt = p; p.setVolume(Math.round(+$('#music-vol').value * 100)); res(p); },
+          onStateChange: (e) => {
+            NG.music.shared = e.data === 1;
+            try { ytTitle = (p.getVideoData() || {}).title || ytTitle; } catch { /* not ready */ }
+            renderMusic();
+          },
+          onError: () => toast('이 영상은 다른 사이트에서 재생할 수 없게 막혀 있어요. 다른 영상을 골라주세요'),
+        },
+      });
+    });
+  }
+  async function applyMusic() {
+    const m = shared.music;
+    renderMusic();
+    if (!m || !m.vid || !me.listen) { if (yt) yt.stopVideo(); NG.music.shared = false; return; }
+    try {
+      const p = await ensurePlayer();
+      if (shared.music !== m) return; // changed while loading
+      if (NG.music.playing) NG.music.stop();
+      ytTitle = '';
+      p.loadVideoById({ videoId: m.vid, startSeconds: Math.max(0, (Date.now() - m.startedAt) / 1000) });
+    } catch { renderMusic(); }
+  }
+  function renderMusic() {
+    const m = shared.music, on = !!(m && m.vid);
+    $('#mu-now').textContent = on ? `🎶 ${ytTitle || '유튜브 음악'}` : '지금 아무것도 안 나와요';
+    $('#mu-by').textContent = on ? `${m.name || '누군가'}님이 틀었어요${me.listen ? '' : ' · 나는 안 듣는 중'}` : '';
+    $('#mu-listen').checked = !!me.listen;
+    $('#music-btn').textContent = NG.music.playing ? '⏸ 기본 재즈 끄기' : '▶ 기본 재즈 (나만 듣기)';
+    $('#music-nav').classList.toggle('playing', NG.music.playing || !!NG.music.shared);
+    if (ytFailed) $('#mu-note').textContent = '유튜브를 불러오지 못했어요. 이 주소(예: claude.ai 링크)에서는 유튜브를 쓸 수 없을 수 있어요. GitHub Pages 주소에서 열어주세요.';
+  }
+  $('#mu-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (me.slot == null) { askIdentity(); return; }
+    const vid = parseVid($('#mu-url').value);
+    if (!vid) { toast('유튜브 주소를 붙여넣어 주세요 (youtube.com/watch?v=… 또는 youtu.be/…)'); return; }
+    NG.net.send({ type: 'music', slot: me.slot, name: me.name, vid, startedAt: Date.now() });
+    NG.net.send({ type: 'sys', slot: me.slot, text: `🎷 ${me.name}님이 주크박스에 음악을 틀었어요` });
+    $('#mu-url').value = '';
+    if (!me.listen) { me.listen = true; save(); }
+  });
+  $('#mu-stop').addEventListener('click', () => {
+    if (!shared.music || !shared.music.vid) return;
+    NG.net.send({ type: 'music', slot: me.slot, name: me.name, vid: '', startedAt: Date.now() });
+  });
+  $('#mu-listen').addEventListener('change', (e) => { me.listen = e.target.checked; save(); applyMusic(); });
+  $('#music-btn').addEventListener('click', () => { NG.music.toggle(); renderMusic(); });
+  $('#music-vol').addEventListener('input', (e) => { NG.music.setVolume(+e.target.value); if (yt) yt.setVolume(Math.round(+e.target.value * 100)); });
+  // Browsers block sound until the first click; start the shared song then.
+  window.addEventListener('pointerdown', () => {
+    if (shared.music && shared.music.vid && me.listen && !NG.music.shared) applyMusic();
+  }, { once: true, capture: true });
 
   // ---------- first-run tutorial ----------
   const TUT = [
@@ -918,6 +992,11 @@
     } else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
     else if (m.type === 'act') { if (m.slot !== me.slot && m.a !== 'dart') NG.stage.act(m.slot, m.a); }
     else if (m.type === 'pos') { if (m.slot !== me.slot) NG.stage.applyRemote(m.slot, m); }
+    else if (m.type === 'music') {
+      const fresh = !shared.music || shared.music.vid !== m.vid || shared.music.startedAt !== m.startedAt;
+      shared.music = m;
+      if (fresh) { applyMusic(); if (m.vid && m.slot !== me.slot && Date.now() - bootAt > 3000) toast(`🎷 ${m.name}님이 음악을 틀었어요${me.listen ? '' : ' (공유 음악 듣기가 꺼져 있어요)'}`); }
+    }
     else if (m.type === 'note') {
       const i = shared.notes.findIndex((o) => o.id === m.id);
       if (i >= 0) shared.notes[i] = m; else { shared.notes.push(m); if (m.slot !== me.slot && Date.now() - bootAt > 4000) toast(`📌 ${m.name}님이 포스트잇을 붙였어요`); }
@@ -950,7 +1029,9 @@
       if (p && p.name) NG.stage.setPlayer(k, p.name, p.status, p.look || null);
     }
     shared.notes = st.notes || [];
-    (st.chat || []).slice(-60).forEach(addChat);
+    // The chat starts empty on every visit: what was said while you were away stays away.
+    if (st.music && st.music.vid && Date.now() - st.music.startedAt < 6 * 3600e3) shared.music = st.music;
+    renderMusic();
     NG.net.on(handle);
     tickGauges(); setInterval(tickGauges, 30000);
     renderHud(); bumpBoard();

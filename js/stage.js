@@ -497,24 +497,100 @@
     if (h >= 17) return { sky: ['#b98f7c', '#dcb79a'], night: false };
     return { sky: ['#a9bccb', '#d4dde2'], night: false };
   }
-  const rain = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.5 }));
+  // ---------- weather outside the windows: changes every 3 minutes, picked from the clock so everyone shares it ----------
+  const WEATHER_MS = 180000, BLEND_MS = 8000;
+  const WEATHERS = ['clear', 'cloudy', 'rain', 'storm', 'snow', 'fog', 'petals', 'rainbow'];
+  const WEATHER_NAME = { clear: '맑음', cloudy: '흐림', rain: '비', storm: '천둥번개', snow: '눈', fog: '안개', petals: '꽃잎 날림', rainbow: '무지개' };
+  // Every 8 slots is a seeded shuffle of all kinds, so it always changes and everything comes round.
+  function cycleOrder(c) {
+    const o = WEATHERS.slice();
+    let h = (Math.imul(c, 2654435761) >>> 0) || 1;
+    for (let i = o.length - 1; i > 0; i--) { h = (Math.imul(h ^ (h >>> 13), 1274126177) >>> 0) || 7; const j = h % (i + 1); [o[i], o[j]] = [o[j], o[i]]; }
+    return o;
+  }
+  function weatherAt(slot) {
+    const c = Math.floor(slot / 8), i = slot - c * 8, o = cycleOrder(c);
+    if (o[0] === cycleOrder(c - 1)[7]) [o[0], o[1]] = [o[1], o[0]];
+    return o[i];
+  }
+  function weatherNow() {
+    const now = Date.now(), slot = Math.floor(now / WEATHER_MS), into = now - slot * WEATHER_MS;
+    return { kind: weatherAt(slot), prev: weatherAt(slot - 1), mix: Math.min(1, into / BLEND_MS) };
+  }
+  const rain = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.5 }));
+  const flakes = Array.from({ length: 34 }, () => ({ x: Math.random(), y: Math.random(), v: 0.05 + Math.random() * 0.06, p: Math.random() * 6 }));
+  const petals = Array.from({ length: 18 }, () => ({ x: Math.random(), y: Math.random(), v: 0.06 + Math.random() * 0.05, p: Math.random() * 6 }));
+  const lightning = (t) => { const k = Math.floor(t * 2); const r = Math.sin(k * 12.9898) * 43758.5453 % 1; return Math.abs(r) < 0.035 ? 1 - (t * 2 - k) : 0; };
+
+  function weatherLayer(kind, x0, y0, w, h, t, mood, a) {
+    if (a <= 0.01) return;
+    ctx.save(); ctx.globalAlpha = a;
+    const tint = { cloudy: 'rgba(120,124,132,.32)', rain: 'rgba(90,98,112,.42)', storm: 'rgba(40,44,60,.6)', snow: 'rgba(210,218,228,.35)', fog: 'rgba(214,214,210,.55)' }[kind];
+    if (tint) { ctx.fillStyle = tint; ctx.fillRect(x0, y0, w, h); }
+    if (kind === 'clear' || kind === 'petals' || kind === 'rainbow') {
+      ctx.fillStyle = mood.night ? '#f2ead0' : '#ffe9a8';
+      ctx.beginPath(); ctx.arc(x0 + w * 0.78, y0 + h * 0.26, 4.5, 0, 7); ctx.fill();
+    }
+    if (kind === 'rainbow') {
+      ['#e08a8a', '#e8b878', '#e8dc8a', '#9ccf98', '#8ab4dc', '#a898d0'].forEach((c, i) => {
+        ctx.strokeStyle = c; ctx.lineWidth = 1.6; ctx.globalAlpha = a * 0.75;
+        ctx.beginPath(); ctx.arc(x0 + w * 0.45, y0 + h * 1.05, h * 0.82 - i * 2, Math.PI, 0); ctx.stroke();
+      });
+      ctx.globalAlpha = a;
+    }
+    if (kind === 'cloudy' || kind === 'rain' || kind === 'storm' || kind === 'snow') {
+      ctx.fillStyle = kind === 'storm' ? '#4a4e5e' : kind === 'snow' ? '#e2e4ea' : '#9aa0aa';
+      for (let i = 0; i < 4; i++) {
+        const cx = x0 + (((i * 0.31 + t * 0.006) % 1.3) - 0.15) * w, cy = y0 + 5 + (i % 2) * 6;
+        ctx.beginPath(); ctx.ellipse(cx, cy, 11, 5, 0, 0, 7); ctx.ellipse(cx + 8, cy - 3, 8, 5, 0, 0, 7); ctx.fill();
+      }
+    }
+    if (kind === 'rain' || kind === 'storm') {
+      ctx.strokeStyle = mood.night ? 'rgba(170,185,220,.6)' : 'rgba(255,255,255,.65)'; ctx.lineWidth = 1;
+      const n = kind === 'storm' ? 70 : 40, slant = kind === 'storm' ? 4 : 2;
+      for (let i = 0; i < n; i++) {
+        const r = rain[i];
+        const yy = y0 + ((r.y + t * r.v * (kind === 'storm' ? 1.5 : 1)) % 1) * (h + 10) - 10, xx = x0 + r.x * w;
+        ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx - slant, yy + 6); ctx.stroke();
+      }
+      if (kind === 'storm') { const f = lightning(t); if (f > 0) { ctx.fillStyle = `rgba(255,255,250,${0.8 * f})`; ctx.fillRect(x0, y0, w, h); } }
+    }
+    if (kind === 'snow') {
+      ctx.fillStyle = '#ffffff';
+      for (const f of flakes) {
+        const yy = y0 + ((f.y + t * f.v) % 1) * h, xx = x0 + ((f.x + Math.sin(t * 0.8 + f.p) * 0.03) % 1) * w;
+        ctx.fillRect(xx, yy, 1.6, 1.6);
+      }
+    }
+    if (kind === 'petals') {
+      ctx.fillStyle = '#f2c4d0';
+      for (const f of petals) {
+        const yy = y0 + ((f.y + t * f.v) % 1) * h, xx = x0 + ((f.x + t * 0.03 + Math.sin(t + f.p) * 0.04) % 1) * w;
+        ctx.fillRect(xx, yy, 2, 1.4);
+      }
+    }
+    if (kind === 'fog') {
+      ctx.fillStyle = 'rgba(236,236,232,.5)';
+      for (let i = 0; i < 3; i++) { const yy = y0 + h * (0.3 + i * 0.22), off = ((t * 3 * (i % 2 ? 1 : -1)) % 30); ctx.fillRect(x0 + off - 30, yy, w + 60, 4); }
+    }
+    ctx.restore();
+  }
 
   function windowAt(x0, y0, w, h, t, mood) {
     box(x0 - 4, y0 - 4, w + 8, h + 8, PAL.woodDk);
     const g = ctx.createLinearGradient(0, y0, 0, y0 + h);
     g.addColorStop(0, mood.sky[0]); g.addColorStop(1, mood.sky[1]);
     ctx.fillStyle = g; ctx.fillRect(x0, y0, w, h);
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
+    const wx = weatherNow();
+    // sky-level effects behind the skyline, precipitation in front
+    weatherLayer(wx.prev, x0, y0, w, h, t, mood, 1 - wx.mix);
+    weatherLayer(wx.kind, x0, y0, w, h, t, mood, wx.mix);
+    ctx.restore();
     ctx.fillStyle = mood.night ? '#262a40' : '#8d97a3';
     for (let i = 0; i < w; i += 9) { const bh = 10 + ((i * 37) % 23); ctx.fillRect(x0 + i, y0 + h - bh, 8, bh); }
+    if (wx.kind === 'snow' && wx.mix > 0.5) { ctx.fillStyle = '#eef0f4'; for (let i = 0; i < w; i += 9) { const bh = 10 + ((i * 37) % 23); ctx.fillRect(x0 + i, y0 + h - bh, 8, 2); } }
     if (mood.night) { ctx.fillStyle = '#e8cf8a'; for (let i = 3; i < w; i += 9) if ((i * 7) % 3 === 0) ctx.fillRect(x0 + i, y0 + h - 8, 2, 2); }
-    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
-    ctx.strokeStyle = mood.night ? 'rgba(170,185,220,.55)' : 'rgba(255,255,255,.6)'; ctx.lineWidth = 1;
-    for (const r of rain) {
-      const yy = y0 + ((r.y + t * r.v) % 1) * (h + 10) - 10;
-      const xx = x0 + r.x * w;
-      ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx - 2, yy + 6); ctx.stroke();
-    }
-    ctx.restore();
     box(x0 + w / 2 - 1.5, y0, 3, h, PAL.woodDk); box(x0, y0 + h / 2 - 1.5, w, 3, PAL.woodDk);
     box(x0 - 6, y0 + h + 2, w + 12, 5, PAL.wood);
   }
@@ -784,6 +860,8 @@
     glow(L.stoveX, F - 26, 60 + Math.sin(t * 9) * 3, 0.3 * k, '240,140,70');
     if (occ.tent && occ.tent.some((v) => v != null)) glow(L.byId.tent.seats[0].x, L.loftY - 14, 34, 0.3 * k);
     if (musicOn) glow(L.jukeX, F - 40, 40, 0.22 * k, '240,180,120');
+    const wx = weatherNow();
+    if (wx.kind === 'storm' && wx.mix > 0.5) { const f = lightning(t); if (f > 0) { ctx.fillStyle = `rgba(220,226,255,${0.12 * f})`; ctx.fillRect(0, 0, view.WW, view.H); } }
     for (let x = 10; x < L.loftX1; x += 40) glow(x, L.loftY - 88, 18, 0.12 * k);
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -1423,6 +1501,7 @@
     onAction: null, onArrive: null, onGacha: null,
     set projecting(v) { proj.on = !!v; },
     get projectorReady() { return proj.t > 0.97; },
+    weather() { const w = weatherNow(); return { kind: w.kind, name: WEATHER_NAME[w.kind] }; },
     // Screen cloth in CSS px relative to the stage wrapper (for overlaying the video).
     screenRect() {
       if (!layout) return null;

@@ -695,12 +695,12 @@
       const l = NG.sanitizeLook(p && p.look, baseLook(c.id));
       return `<button type="button" class="ccard ${sel === c.id ? 'on' : ''}" data-c="${c.id}">
         <span class="cface" style="--hair:${l.hair};--skin:${l.skin};--top:${l.top}"></span><b>${named ? esc(p.name) : `멤버 ${c.id + 1}`}</b>
-        <small>${named ? (c.id === me.slot ? '나' : '이 멤버로 입장') : '아직 이름 없음'}</small></button>`;
+        <small>${isLive(c.id) ? '🟢 지금 접속 중' : named ? (c.id === me.slot ? '나' : '이 멤버로 입장') : '아직 이름 없음'}</small></button>`;
     }).join('');
   }
   // First entry is just member + name; the full customizer opens from settings (or askIdentity(true)).
   function askIdentity(full = me.slot != null) {
-    const firstFree = [0, 1, 2].find((i) => !(shared.players[i] && shared.players[i].name));
+    const firstFree = [0, 1, 2].find((i) => !(shared.players[i] && shared.players[i].name) && !isLive(i));
     let sel = me.slot ?? firstFree ?? 0;
     const seatLook = (i) => NG.sanitizeLook(i === me.slot && me.look ? me.look : shared.players[i] && shared.players[i].look, baseLook(i));
     const seatName = (i) => (i === me.slot && me.name) || (shared.players[i] && shared.players[i].name) || '';
@@ -766,6 +766,7 @@
     requestAnimationFrame(loop);
 
     const ok = () => {
+      if (isLive(sel) && sel !== me.slot) { toast('🟢 그 멤버는 지금 다른 곳에서 접속 중이에요. 다른 자리를 골라주세요'); return; }
       const name = $('#id-name').value.trim();
       if (!name) { toast('닉네임을 적어주세요'); $('#id-name').focus(); return; }
       const prev = me.slot;
@@ -899,12 +900,27 @@
       if ($('#w-status').classList.contains('open')) renderStatus();
     } else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
     else if (m.type === 'act') { if (m.slot !== me.slot && m.a !== 'dart') NG.stage.act(m.slot, m.a); }
+    else if (m.type === 'pos') { if (m.slot !== me.slot) { NG.stage.applyRemote(m.slot, m); liveAt[m.slot] = Date.now(); } }
     else if (m.type === 'note') {
       const i = shared.notes.findIndex((o) => o.id === m.id);
       if (i >= 0) shared.notes[i] = m; else { shared.notes.push(m); if (m.slot !== me.slot && Date.now() - bootAt > 4000) toast(`📌 ${m.name}님이 포스트잇을 붙였어요`); }
       renderBoard(); bumpBoard();
     } else if (m.type === 'noteDel') { shared.notes = shared.notes.filter((o) => o.id !== m.id); renderBoard(); }
   }
+  // Stream my character (position, rest spot, pose, animation) so everyone sees the same thing; ~5×/s on change, 1×/s idle.
+  const liveAt = {};
+  let lastPos = '', lastPosAt = 0;
+  setInterval(() => {
+    if (me.slot == null || !NG.net.online) return;
+    const p = NG.stage.myPos(); if (!p) return;
+    const key = JSON.stringify({ ...p, animT: 0 });
+    const now = Date.now();
+    if (key === lastPos && now - lastPosAt < 1000) return;
+    lastPos = key; lastPosAt = now;
+    NG.net.send({ type: 'pos', ...p });
+  }, 200);
+  const isLive = (slot) => slot !== me.slot && Date.now() - (liveAt[slot] || 0) < 5000;
+
   function bumpBoard() { $('#board-count').textContent = shared.notes.length; }
 
   async function boot() {

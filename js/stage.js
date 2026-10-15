@@ -175,6 +175,12 @@
     if (c.throwT > 0) c.throwT -= dt;
     if (c.animT > 0) c.animT -= dt;
 
+    // Someone else is playing this character: follow their stream instead of running AI/physics here.
+    if (c.remote) {
+      if (performance.now() - c.remote.at < 4000 && !(NG.app && NG.app.me === c.i)) { followRemote(c, dt); return; }
+      c.remote = null; if (c.task) standUp(c); c.climbing = false; c.ground = false; c.aiT = 1;
+    }
+
     if (c.task && c.task.phase === 'do') {
       seatChar(c);
       if (!c.task.manual && performance.now() > c.task.until) { standUp(c); c.aiT = 0.5 + Math.random(); }
@@ -932,9 +938,55 @@
     { a: 'jump', e: '⬆️', n: '점프' },
     { a: 'dance', e: '💃', n: '춤' },
   ];
+  // ---------- multiplayer: each player drives their own character, everyone else mirrors it ----------
+  // Positions travel layout-independent: a rest spot + seat, or x as a fraction of the room and height above the floor.
+  function exportState(c) {
+    const doing = c.task && c.task.phase === 'do';
+    return {
+      slot: c.i, fx: +(c.x / view.WW).toFixed(4), h: +(view.floor - c.y).toFixed(1), dir: c.dir,
+      pose: c.pose || null, spot: doing ? c.task.spot : null, seat: doing ? c.task.seat : 0,
+      anim: c.animT > 0 ? c.anim : null, animT: c.animT > 0 ? +c.animT.toFixed(2) : 0,
+      walk: !!c.vx && c.ground, air: !c.ground && !c.climbing, climb: !!c.climbing, sit: !!c.sit,
+    };
+  }
+  function followRemote(c, dt) {
+    const s = c.remote.s;
+    c.steps = []; c.locked = false;
+    if (s.spot && layout.byId[s.spot]) {
+      const o = occ[s.spot];
+      const seat = Math.min(s.seat || 0, o.length - 1);
+      if (!c.task || c.task.spot !== s.spot || c.task.seat !== seat) {
+        freeSeat(c);
+        if (o[seat] != null && o[seat] !== c.i) { const other = chars[o[seat]]; if (other && !other.remote) standUp(other); }
+        o[seat] = c.i;
+        c.task = { spot: s.spot, seat, phase: 'do', manual: true, until: 0 };
+      }
+      seatChar(c);
+    } else {
+      if (c.task) { freeSeat(c); c.task = null; }
+      c.pose = s.pose;
+      const tx = s.fx * view.WW, ty = view.floor - s.h;
+      if (Math.abs(tx - c.x) > 160 || Math.abs(ty - c.y) > 160) { c.x = tx; c.y = ty; }
+      const k = Math.min(1, dt * 9);
+      const dx = tx - c.x;
+      c.x += dx * k; c.y += (ty - c.y) * k;
+      c.dir = s.dir || c.dir;
+      c.climbing = s.climb; c.ground = !s.air; c.sit = s.sit;
+      c.vx = s.walk ? (Math.sign(dx) || c.dir) * 72 : 0;
+      if (s.walk || s.climb) c.walkT += dt * (s.climb ? 5 : 6.5); else c.walkT = 0;
+    }
+    if (s.anim && (c.anim !== s.anim || c.animT <= 0)) { c.anim = s.anim; c.animT = s.animT; }
+  }
+  function applyRemote(slot, s) {
+    const c = chars[slot];
+    if (!c || (NG.app && NG.app.me === slot)) return;
+    c.remote = { s, at: performance.now() };
+  }
+
   function act(slot, a) {
     const c = chars[slot];
     if (!c || c.locked) return;
+    if (c.remote && performance.now() - c.remote.at < 4000 && !/^(wave|dance|cheer|sip)$/.test(a)) return; // their stream moves them
     if (a.startsWith('spot:')) { startTask(c, a.slice(5), true); return; }
     standUp(c);
     c.sit = false;
@@ -1309,6 +1361,9 @@
     resize,
     say(slot, text) { const c = chars[slot]; if (c) { c.bubble = text; c.bubbleT = 6; } },
     emote(slot, e) { const c = chars[slot]; if (c) { c.emote = e; c.emoteT = 1.8; } },
+    myPos() { const c = NG.app && NG.app.me != null ? chars[NG.app.me] : null; return c ? exportState(c) : null; },
+    applyRemote,
+    isLive(slot) { const c = chars[slot]; return !!(c && c.remote && performance.now() - c.remote.at < 4000); },
     setPlayer(slot, name, status, look) {
       const c = chars[slot]; if (!c) return;
       c.name = name || NG.CHARS[slot].name; c.status = status || null;

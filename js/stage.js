@@ -26,6 +26,7 @@
   // view: logical units (≈400 tall). P = css px per buffer pixel; q = buffer px per logical unit.
   const view = { W: 800, WW: 800, H: 400, s: 1, dpr: 1, floor: 360, P: 3, q: 0.5, bw: 1, bh: 1, cssW: 1, cssH: 1, camX: 0, camHold: 0 };
   let layout = null;
+  const proj = { on: false, t: 0 }; // screen roll-down 0..1
 
   function resize() {
     const wrap = canvas.parentElement.getBoundingClientRect();
@@ -92,8 +93,12 @@
     ];
     for (const s of spots) if (!occ[s.id] || occ[s.id].length !== s.seats.length) occ[s.id] = s.seats.map(() => null);
     const shelf = { x0: W * 0.18, x1: Math.min(loftX1 - 30, W * 0.18 + 8 * 20), y: loftY - 74 };
+    // Pull-down projector screen above the gacha shop (16:9) and a ceiling projector over the jukebox.
+    const scx = (shopX0 + shopX1) / 2;
+    const screen = { x0: scx - 62, x1: scx + 62, y0: F - 222, y1: F - 152 };
+    const projector = { x: jukeX - 6, y: Math.max(26, F - 262) };
     const machines = ['band', 'chim', 'idol'].map((key, k) => ({ key, x: shopX0 + 20 + k * 39, hit: { x0: shopX0 + 6 + k * 39, y0: F - 72, x1: shopX0 + 34 + k * 39, y1: F } }));
-    layout = { board, line, loftY, loftX1, ladderX, barX0, barX1, jukeX, winX0, winX1, sofaX0, sofaX1, stoveX, spots, shelf, shopX0, shopX1, machines,
+    layout = { screen, projector, board, line, loftY, loftX1, ladderX, barX0, barX1, jukeX, winX0, winX1, sofaX0, sofaX1, stoveX, spots, shelf, shopX0, shopX1, machines,
       byId: Object.fromEntries(spots.map((s) => [s.id, s])) };
   }
   const levelY = (lv) => (lv === 1 ? layout.loftY : view.floor);
@@ -675,6 +680,19 @@
     rr(jx - 10, F - 52, 20, 20, 8); ctx.fillStyle = musicOn ? PAL.glow : '#c9b48a'; ctx.fill();
     for (let k = 0; k < 4; k++) box(jx - 9 + k * 5, F - 28, 3, 10, musicOn && (Math.floor(t * 6) + k) % 2 ? PAL.fire2 : PAL.mustard);
     box(jx - 12, F - 14, 24, 10, PAL.woodDk);
+    // projector screen (rolls down while a video plays) and the ceiling projector
+    if (proj.t > 0.01) {
+      const sc = L.screen, w = sc.x1 - sc.x0, h = (sc.y1 - sc.y0) * proj.t;
+      box(sc.x0 - 6, sc.y0 - 6, w + 12, 6, '#3e3a36'); box(sc.x0 - 8, sc.y0 - 5, 4, 4, PAL.metalDk); box(sc.x1 + 4, sc.y0 - 5, 4, 4, PAL.metalDk);
+      box(sc.x0 - 2, sc.y0, w + 4, h + 4, '#2b2826');
+      box(sc.x0, sc.y0, w, h, '#ece6d8');
+      box(sc.x0 + w / 2 - 3, sc.y0 + h + 4, 6, 3, '#2b2826');
+      const pj = L.projector;
+      box(pj.x - 1, 9, 2, pj.y - 9, PAL.ink);
+      rr(pj.x - 12, pj.y, 24, 11, 2); ctx.fillStyle = '#4a4642'; ctx.fill();
+      box(pj.x + 10, pj.y + 3, 5, 5, '#2b2826');
+      box(pj.x - 8, pj.y + 3, 3, 2, proj.t > 0.9 ? '#f4c65a' : '#6e665e');
+    }
     // gacha shop: awning + three capsule machines
     const g0 = L.shopX0, g1 = L.shopX1;
     box(g0, F - 112, g1 - g0, 6, PAL.woodDk);
@@ -725,6 +743,31 @@
       layout.figureHits.push({ x, y: y - 7, f });
     });
     ctx.textAlign = 'left';
+  }
+
+  // Projector beam: a flickering warm cone from the lens to the screen, with drifting dust.
+  const dust = Array.from({ length: 26 }, () => ({ u: Math.random(), v: Math.random(), s: 0.3 + Math.random() * 0.7 }));
+  function drawBeam(t) {
+    const pj = layout.projector, sc = layout.screen;
+    const lx = pj.x + 15, ly = pj.y + 5;
+    const flick = 0.75 + Math.sin(t * 23) * 0.06 + Math.sin(t * 7.3) * 0.08 + (Math.random() - 0.5) * 0.08;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(lx, ly, sc.x0, (sc.y0 + sc.y1) / 2);
+    g.addColorStop(0, `rgba(255,232,180,${0.55 * flick})`); g.addColorStop(1, `rgba(255,220,160,${0.1 * flick})`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(lx, ly - 1.5); ctx.lineTo(sc.x1, sc.y0); ctx.lineTo(sc.x1, sc.y1); ctx.lineTo(sc.x0, sc.y1); ctx.lineTo(sc.x0, sc.y0); ctx.lineTo(lx, ly + 1.5); ctx.closePath(); ctx.fill();
+    // dust motes floating inside the cone
+    for (const d of dust) {
+      const k = (d.u + t * 0.02 * d.s) % 1, ex = sc.x0 + (sc.x1 - sc.x0) * d.v, ey = sc.y0 + (sc.y1 - sc.y0) * ((d.v * 7.3 + t * 0.05 * d.s) % 1);
+      const x = lx + (ex - lx) * k, y = ly + (ey - ly) * k + Math.sin(t * d.s * 2 + d.u * 9) * 2;
+      ctx.fillStyle = `rgba(255,240,210,${0.35 + 0.35 * Math.sin(t * 3 + d.u * 20)})`; ctx.fillRect(x, y, 1.2, 1.2);
+    }
+    // light spill on the wall round the screen
+    const sg = ctx.createRadialGradient((sc.x0 + sc.x1) / 2, (sc.y0 + sc.y1) / 2, 10, (sc.x0 + sc.x1) / 2, (sc.y0 + sc.y1) / 2, 110);
+    sg.addColorStop(0, `rgba(255,220,170,${0.12 * flick})`); sg.addColorStop(1, 'rgba(255,220,170,0)');
+    ctx.fillStyle = sg; ctx.fillRect(sc.x0 - 110, sc.y0 - 110, sc.x1 - sc.x0 + 220, sc.y1 - sc.y0 + 220);
+    ctx.restore();
   }
 
   // Warm light pools, added after the colour grade.
@@ -1234,8 +1277,11 @@
     pixelText(bctx, '가챠샵', ((layout.shopX0 + layout.shopX1) / 2 - view.camX) * q, (view.floor - 124) * q, '#76362f');
     pixelText(bctx, '만화방', ((layout.byId.manga.hit.x0 + layout.byId.manga.hit.x1) / 2 - view.camX) * q, (view.floor - 104) * q, '#5e4636');
     grade(bctx, bw, bh, mood.night);
+    proj.t = Math.max(0, Math.min(1, proj.t + (proj.on ? dt * 1.2 : -dt * 1.6)));
+    if (proj.t > 0) { bctx.fillStyle = `rgba(25,18,24,${0.16 * proj.t})`; bctx.fillRect(0, 0, bw, bh); }
     bctx.setTransform(q, 0, 0, q, -cx * q, 0);
     drawLights(t, musicOn, mood);
+    if (proj.t > 0.9) drawBeam(t);
 
     // scale up with a screen-door grid
     main.setTransform(1, 0, 0, 1, 0, 0);
@@ -1375,6 +1421,14 @@
   NG.stage = {
     chars, view, startDart, act, drawPreview, drawFigure, ACTIONS,
     onAction: null, onArrive: null, onGacha: null,
+    set projecting(v) { proj.on = !!v; },
+    get projectorReady() { return proj.t > 0.97; },
+    // Screen cloth in CSS px relative to the stage wrapper (for overlaying the video).
+    screenRect() {
+      if (!layout) return null;
+      const sc = layout.screen, s = view.s;
+      return { left: (sc.x0 - view.camX) * s, top: sc.y0 * s, width: (sc.x1 - sc.x0) * s, height: (sc.y1 - sc.y0) * s };
+    },
     get dartActive() { return dart.active; },
     get ringOpen() { return !!ringOpen; },
     get spots() { return layout ? layout.spots : []; },

@@ -6,7 +6,7 @@
   const KEY = 'nogari.me.v1';
 
   // ---------- persistent personal state ----------
-  const def = { listen: true, slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 60, figures: {}, shelf: true,
+  const def = { listen: false, slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 60, figures: {}, shelf: true,
     caffeine: 80, focus: 90, exp: 0, lv: 1, best: { dart: 0 }, chatOpacity: 0.55, lastTick: Date.now() };
   let me;
   try { me = { ...def, ...JSON.parse(localStorage.getItem(KEY)) }; } catch { me = { ...def }; }
@@ -14,6 +14,7 @@
   // Everyone gets a personal id; their character is keyed by it (me.slot holds it once they've entered).
   if (!me.uid) me.uid = 'u' + Math.random().toString(36).slice(2, 12).padEnd(10, '0');
   if (typeof me.slot === 'number') me.slot = me.uid; // from the old three-seat version
+  if (!me.listenV2) { me.listen = false; me.listenV2 = true; } // shared sound now starts off for everyone
   me.gacha = me.gacha || {}; me.holo = me.holo || {};
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch { /* blocked */ } };
 
@@ -855,14 +856,14 @@
   async function ensurePlayer() {
     await loadYT();
     if (yt) return yt;
-    $('#yt-wrap').hidden = false;
     return new Promise((res) => {
       const p = new window.YT.Player('yt-box', {
         width: '100%', height: '100%', playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
         events: {
-          onReady: () => { yt = p; p.setVolume(Math.round(+$('#music-vol').value * 100)); res(p); },
+          onReady: () => { yt = p; p.setVolume(Math.round(+$('#music-vol').value * 100)); if (me.listen) p.unMute(); else p.mute(); res(p); },
           onStateChange: (e) => {
             NG.music.shared = e.data === 1;
+            if (e.data === 0) fallbackJazz(); // the shared song ended
             try { ytTitle = (p.getVideoData() || {}).title || ytTitle; } catch { /* not ready */ }
             renderMusic();
           },
@@ -874,19 +875,28 @@
   async function applyMusic() {
     const m = shared.music;
     renderMusic();
-    if (!m || !m.vid || !me.listen) { if (yt) yt.stopVideo(); NG.music.shared = false; return; }
+    NG.stage.projecting = !!(m && m.vid);
+    if (!m || !m.vid) { if (yt) yt.stopVideo(); if (NG.music.shared || yt) fallbackJazz(); NG.music.shared = false; return; }
     try {
       const p = await ensurePlayer();
       if (shared.music !== m) return; // changed while loading
-      if (NG.music.playing) NG.music.stop();
+      if (NG.music.playing && me.listen) NG.music.stop();
+      if (me.listen) p.unMute(); else p.mute(); // everyone sees the screen; sound only for listeners
       ytTitle = '';
       p.loadVideoById({ videoId: m.vid, startSeconds: Math.max(0, (Date.now() - m.startedAt) / 1000) });
     } catch { renderMusic(); }
   }
+  // When the shared song ends or is stopped, listeners drift back into the house jazz; the screen rolls up.
+  function fallbackJazz() {
+    NG.music.shared = false;
+    NG.stage.projecting = false;
+    if (me.listen && !NG.music.playing) NG.music.start();
+    renderMusic();
+  }
   function renderMusic() {
     const m = shared.music, on = !!(m && m.vid);
     $('#mu-now').textContent = on ? `🎶 ${ytTitle || '유튜브 음악'}` : '지금 아무것도 안 나와요';
-    $('#mu-by').textContent = on ? `${m.name || '누군가'}님이 틀었어요${me.listen ? '' : ' · 나는 안 듣는 중'}` : '';
+    $('#mu-by').textContent = on ? `${m.name || '누군가'}님이 틀었어요 · ${me.listen ? '🔊 듣는 중' : '🔇 소리 꺼짐 (화면만)'}` : '';
     $('#mu-listen').checked = !!me.listen;
     $('#music-btn').textContent = NG.music.playing ? '⏸ 기본 재즈 끄기' : '▶ 기본 재즈 (나만 듣기)';
     $('#music-nav').classList.toggle('playing', NG.music.playing || !!NG.music.shared);
@@ -900,18 +910,29 @@
     NG.net.send({ type: 'music', slot: me.slot, name: me.name, vid, startedAt: Date.now() });
     NG.net.send({ type: 'sys', slot: me.slot, text: `🎷 ${me.name}님이 주크박스에 음악을 틀었어요` });
     $('#mu-url').value = '';
-    if (!me.listen) { me.listen = true; save(); }
+    if (!me.listen) { me.listen = true; save(); renderMusic(); } // whoever plays it hears it
   });
   $('#mu-stop').addEventListener('click', () => {
     if (!shared.music || !shared.music.vid) return;
     NG.net.send({ type: 'music', slot: me.slot, name: me.name, vid: '', startedAt: Date.now() });
   });
-  $('#mu-listen').addEventListener('change', (e) => { me.listen = e.target.checked; save(); applyMusic(); });
+  $('#mu-listen').addEventListener('change', (e) => {
+    me.listen = e.target.checked; save();
+    if (yt) { if (me.listen) { yt.unMute(); if (NG.music.playing) NG.music.stop(); } else yt.mute(); renderMusic(); } else applyMusic();
+  });
+  // Keep the video glued to the pixel screen (camera pans, window resizes, roll-down animation).
+  (function placeProjection() {
+    const el = $('#proj'), r = NG.stage.screenRect();
+    const show = !!(shared.music && shared.music.vid && yt && NG.stage.projectorReady && r);
+    el.hidden = !show;
+    if (show) { el.style.left = r.left + 'px'; el.style.top = r.top + 'px'; el.style.width = r.width + 'px'; el.style.height = r.height + 'px'; }
+    requestAnimationFrame(placeProjection);
+  })();
   $('#music-btn').addEventListener('click', () => { NG.music.toggle(); renderMusic(); });
   $('#music-vol').addEventListener('input', (e) => { NG.music.setVolume(+e.target.value); if (yt) yt.setVolume(Math.round(+e.target.value * 100)); });
   // Browsers block sound until the first click; start the shared song then.
   window.addEventListener('pointerdown', () => {
-    if (shared.music && shared.music.vid && me.listen && !NG.music.shared) applyMusic();
+    if (shared.music && shared.music.vid && !NG.music.shared) applyMusic();
   }, { once: true, capture: true });
 
   // ---------- first-run tutorial ----------
@@ -1031,7 +1052,7 @@
     shared.notes = st.notes || [];
     // The chat starts empty on every visit: what was said while you were away stays away.
     if (st.music && st.music.vid && Date.now() - st.music.startedAt < 6 * 3600e3) shared.music = st.music;
-    renderMusic();
+    applyMusic(); // starts muted (allowed without a click) so the screen shows right away
     NG.net.on(handle);
     tickGauges(); setInterval(tickGauges, 30000);
     renderHud(); bumpBoard();

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>뚠뚠 아지트</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
-  <link rel="stylesheet" href="style.css?v=mv9ec4sb">
+  <link rel="stylesheet" href="style.css?v=mv9eka67">
 </head>
 <body>
   <div id="app">
@@ -27,7 +27,9 @@
       </nav>
     </header>
 
-    <main id="stage-wrap"><canvas id="stage"></canvas></main>
+    <main id="stage-wrap"><canvas id="stage"></canvas>
+      <div id="proj" class="proj" hidden><div id="yt-box"></div><div class="proj-fx"></div><div class="proj-grain"></div></div>
+    </main>
 
     <footer id="bottombar">
       <div class="gauge caf" id="g-caf"><label>☕ 카페인</label><div class="bar"><i></i><em></em></div></div>
@@ -57,14 +59,13 @@
     <div class="win-head"><span>🎷 주크박스</span><button class="win-x" aria-label="닫기">×</button></div>
     <div class="win-body">
       <div class="mu-now"><b id="mu-now">지금 아무것도 안 나와요</b><small id="mu-by"></small></div>
-      <div class="yt-wrap" id="yt-wrap" hidden><div id="yt-box"></div></div>
       <form id="mu-form" class="add-row"><input id="mu-url" placeholder="유튜브 주소 붙여넣기" aria-label="유튜브 주소" autocomplete="off"><button class="btn primary">모두에게 틀기</button></form>
       <div class="music-row">
-        <label class="mu-listen"><input type="checkbox" id="mu-listen"> 공유 음악 듣기</label>
+        <label class="mu-listen"><input type="checkbox" id="mu-listen"> 🔊 공유 음악 듣기</label>
         <button class="btn" id="mu-stop">■ 정지</button>
       </div>
       <label class="vol">🔈<input id="music-vol" type="range" min="0" max="1" step="0.05" value="0.5" aria-label="음량"></label>
-      <p class="sub" id="mu-note">틀면 지금 아지트에 있는 모두에게 같은 곡이 같은 위치로 나와요. 듣기 싫으면 "공유 음악 듣기"를 끄세요.</p>
+      <p class="sub" id="mu-note">틀면 가챠샵 위 스크린에 빔프로젝터로 영상이 나오고, 아지트에 있는 모두가 같은 장면을 봐요. 소리는 "공유 음악 듣기"를 켠 사람에게만 나와요.</p>
       <button class="btn" id="music-btn">▶ 기본 재즈 (나만 듣기)</button>
     </div>
   </section>
@@ -152,12 +153,12 @@
   <div id="modal" class="modal"><div class="modal-card"></div></div>
   <div id="toast" class="toast"></div>
 
-  <script src="js/data.js?v=mv9ec4sb"></script>
-  <script src="js/gacha.js?v=mv9ec4sb"></script>
-  <script src="vendor/trystero.min.js?v=mv9ec4sb"></script>
-  <script src="js/net.js?v=mv9ec4sb"></script>
-  <script src="js/music.js?v=mv9ec4sb"></script>
-  <script src="js/stage.js?v=mv9ec4sb"></script>
-  <script src="js/app.js?v=mv9ec4sb"></script>
+  <script src="js/data.js?v=mv9eka67"></script>
+  <script src="js/gacha.js?v=mv9eka67"></script>
+  <script src="vendor/trystero.min.js?v=mv9eka67"></script>
+  <script src="js/net.js?v=mv9eka67"></script>
+  <script src="js/music.js?v=mv9eka67"></script>
+  <script src="js/stage.js?v=mv9eka67"></script>
+  <script src="js/app.js?v=mv9eka67"></script>
 </body>
 </html>

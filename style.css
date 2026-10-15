@@ -559,3 +559,22 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 .mu-listen { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .mu-listen input { width: 18px; height: 18px; accent-color: var(--accent); }
 #music-btn { width: 100%; margin-top: 6px; }
+
+/* projector: the YouTube player laid over the pixel screen, made to look like an old beam projection */
+.proj { position: absolute; z-index: 4; overflow: hidden; border-radius: 1px; background: #1b1512;
+  box-shadow: 0 0 22px 4px rgba(255, 214, 150, .28); animation: projFlicker 4.2s infinite, projJitter .18s steps(2) infinite; }
+.proj #yt-box, .proj iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.proj iframe { filter: sepia(.38) saturate(.78) contrast(1.1) brightness(.92) blur(.35px); }
+.proj-fx { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(255, 236, 200, .10) 0%, transparent 55%, rgba(40, 24, 12, .55) 100%),
+    repeating-linear-gradient(0deg, rgba(20, 12, 6, .14) 0 1px, transparent 1px 3px),
+    linear-gradient(rgba(255, 196, 120, .10), rgba(255, 196, 120, .10));
+  mix-blend-mode: multiply; }
+.proj-grain { position: absolute; inset: -20%; pointer-events: none; opacity: .16;
+  background-image: radial-gradient(rgba(255, 255, 255, .9) .6px, transparent .8px), radial-gradient(rgba(0, 0, 0, .9) .6px, transparent .8px);
+  background-size: 7px 9px, 11px 7px; background-position: 0 0, 3px 5px; animation: grain .5s steps(3) infinite; }
+@keyframes projFlicker { 0%, 100% { opacity: .94; } 6% { opacity: .84; } 8% { opacity: .97; } 41% { opacity: .9; } 43% { opacity: .98; } 72% { opacity: .88; } }
+@keyframes projJitter { 0% { transform: translate(0, 0); } 50% { transform: translate(.4px, -.3px); } }
+@keyframes grain { 0% { transform: translate(0, 0); } 33% { transform: translate(-3%, 2%); } 66% { transform: translate(2%, -3%); } }
+@media (prefers-reduced-motion: reduce) { .proj, .proj-grain { animation: none; } }

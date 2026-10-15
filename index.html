@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>볼륨 아지트</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand"><span class="logo">🎯</span><span class="title">볼륨 <em>아지트</em></span><span id="net" class="net" title="연결 상태"></span><span id="net-count" class="net-count"></span></div>
+      <button id="me-chip" class="me-chip" data-win="w-status" title="내 상태">
+        <span id="my-name">캐릭터 선택</span><span id="my-status" class="st"></span>
+      </button>
+      <div class="coins" title="코인"><span>🪙</span><b id="coins">0</b></div>
+      <nav class="nav">
+        <button data-win="w-rest" title="쉼터"><span>🛋️</span><em>쉼터</em></button>
+        <button data-win="w-status" title="상태"><span>💬</span><em>상태</em></button>
+        <button data-win="w-board" title="게시판"><span>📌</span><em>게시판</em><i id="board-count" class="cnt">0</i></button>
+        <button data-win="w-figures" title="피규어"><span>🦴</span><em>피규어</em></button>
+        <button data-win="w-games" title="미니게임"><span>🎮</span><em>게임</em></button>
+        <button data-win="w-settings" title="설정"><span>⚙️</span><em>설정</em></button>
+        <button id="music-nav" title="재즈 틀기/끄기">🎷</button>
+        <button id="mini-toggle" title="미니 모드">⤡</button>
+      </nav>
+    </header>
+
+    <main id="stage-wrap"><canvas id="stage"></canvas></main>
+
+    <footer id="bottombar">
+      <div class="gauge caf" id="g-caf"><label>☕ 카페인</label><div class="bar"><i></i><em></em></div></div>
+      <div class="gauge focus" id="g-focus"><label>🧠 정신력</label><div class="bar"><i></i><em></em></div></div>
+      <div class="quick">
+        <button id="btn-coffee" title="커피 마시기">☕<span>충전</span></button>
+        <button id="btn-stretch" title="스트레칭">🙆<span>스트레칭</span></button>
+      </div>
+      <div class="gauge exp" id="g-exp"><div class="bar"><i></i><em></em></div></div>
+    </footer>
+  </div>
+
+  <button id="mini-menu" class="mini-menu" title="전체 UI 보기">☰</button>
+
+  <!-- rest spots -->
+  <section id="w-rest" class="win panel" style="top:64px;left:12px">
+    <div class="win-head"><span>🛋️ 아지트 쉼터</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-body">
+      <p class="sub">가고 싶은 곳을 고르면 캐릭터가 걸어가서 쉬어요. 화면에서 가구를 직접 눌러도 돼요.</p>
+      <div id="rest-list" class="rest-list"></div>
+      <div class="music-row"><button class="btn primary" id="music-btn">▶ 재즈 틀기</button>
+        <label class="vol">🔈<input id="music-vol" type="range" min="0" max="1" step="0.05" value="0.5" aria-label="음량"></label></div>
+      <p class="sub">주크박스 음악은 내 기기에서만 나와요.</p>
+    </div>
+  </section>
+
+  <!-- status -->
+  <section id="w-status" class="win panel" style="top:64px;left:12px">
+    <div class="win-head"><span>💬 오늘의 상태</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-body">
+      <div id="status-list" class="chips"></div>
+      <form id="status-add" class="add-row">
+        <input id="st-emoji" maxlength="4" placeholder="✨" aria-label="이모지">
+        <input id="st-text" maxlength="24" placeholder="새 상태 추가 (예: 회의 중)" aria-label="상태 문구">
+        <button class="btn primary">추가</button>
+      </form>
+      <div id="emoji-pick" class="emoji-pick"><button type="button">🤯</button><button type="button">🫡</button><button type="button">🥱</button><button type="button">🍜</button><button type="button">📞</button><button type="button">🚬</button><button type="button">🏥</button><button type="button">🐢</button><button type="button">🧘</button><button type="button">💸</button></div>
+      <h4>팀원 상태</h4>
+      <div id="status-team"></div>
+    </div>
+  </section>
+
+  <!-- board -->
+  <section id="w-board" class="win panel wide" style="top:64px;left:calc(50% - 260px)">
+    <div class="win-head"><span>📌 아지트 게시판</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-body board-body">
+      <div id="cork" class="cork"></div>
+      <form id="note-form" class="note-form">
+        <textarea id="note-text" maxlength="500" rows="2" placeholder="포스트잇에 쓸 내용 (Ctrl+Enter로 붙이기)"></textarea>
+        <div class="note-tools"><div id="note-colors" class="note-colors"></div><button class="btn primary">📌 붙이기</button></div>
+      </form>
+      <p class="sub hint">포스트잇을 누르면 전체 내용이 보이고, 끌어서 옮길 수 있어요.</p>
+    </div>
+  </section>
+
+  <!-- figures -->
+  <section id="w-figures" class="win panel wide" style="top:64px;right:12px">
+    <div class="win-head"><span>🦴 피규어 도감</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-body">
+      <div id="fig-tabs" class="tabs"><button data-t="anatomy">🦴 해부학 <small id="fig-count"></small></button><button data-t="band">🎸 밴드</button><button data-t="chim">🍗 침착맨</button><button data-t="idol">🎤 아이돌</button></div>
+      <div id="fig-anatomy">
+      <div class="gacha">
+        <div id="gacha-machine" class="machine"><div class="globe"><span>🫀</span><span>💀</span><span>🧠</span><span>🦷</span><span>🧬</span><span>👁️</span></div><div class="slot"></div></div>
+        <div><p><b>캡슐 뽑기</b> · 30🪙</p><p class="sub">일반 70% · 레어 25% · 에픽 5%<br>모은 피규어는 스테이지 진열대에 올라가요.</p>
+          <button id="gacha-btn" class="btn primary">🎰 뽑기!</button></div>
+      </div>
+      <div id="fig-grid" class="fig-grid"></div>
+      </div>
+      <div id="fig-gacha" hidden></div>
+    </div>
+  </section>
+
+  <!-- games -->
+  <section id="w-games" class="win panel" style="top:64px;right:12px">
+    <div class="win-head"><span>🎮 미니게임</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-body">
+      <div id="game-tabs" class="tabs"><button data-g="dart">🎯 다트</button><button data-g="quiz">🧠 해부학 퀴즈</button><button data-g="cell">🧬 세포 2048</button><button data-g="stack">📚 책 쌓기</button></div>
+      <div id="game-body"></div>
+    </div>
+  </section>
+
+  <!-- settings -->
+  <section id="w-settings" class="win panel" style="top:64px;right:12px">
+    <div class="win-head"><span>⚙️ 설정</span><button class="win-x" aria-label="닫기">×</button></div>
+    <div class="win-body settings">
+      <div class="set-row"><span>내 캐릭터</span><b id="set-who"></b><button class="btn" id="set-change">👕 이름·꾸미기</button></div>
+      <div class="set-row"><span>연결</span><b id="set-net"></b></div>
+      <div class="set-row"><span>팀 코드</span><input id="set-team" maxlength="32" aria-label="팀 코드"><button class="btn" id="set-team-save">바꾸기</button></div>
+      <p class="sub">같은 팀 코드를 쓰는 사람끼리만 연결돼요. 바꾸려면 팀원 모두 같은 코드로 맞춰주세요.</p>
+      <button class="btn" id="set-popup">🪟 작은 창으로 띄우기</button>
+      <p class="sub">🖱️ 우클릭(폰은 길게 누르기)으로 행동 링을 열고, 원하는 행동 쪽으로 끌어서 놓으면 실행돼요. 방향키(← → ↑ ↓)도 돼요.</p>
+      <p class="sub">작은 창(가로 320px~)이나 좁은 창에서도 쓸 수 있어요. ⤡ 버튼은 스테이지+채팅만 남기는 미니 모드예요.</p>
+      <button class="btn" id="set-tutorial">📖 튜토리얼 다시 보기</button>
+      <button class="btn danger" id="set-reset">내 기록 초기화</button>
+    </div>
+  </section>
+
+  <!-- translucent chat -->
+  <section id="chat" class="win chat">
+    <div class="win-head">
+      <span>💬 수다방</span>
+      <div class="chat-tools">
+        <input id="chat-op" type="range" min="0.1" max="0.95" step="0.05" title="창 불투명도" aria-label="창 불투명도">
+        <button id="chat-ghost" title="투명 모드 (마우스 올릴 때만 보이기)">👻</button>
+        <button id="chat-min" title="접기">—</button>
+      </div>
+    </div>
+    <div id="chat-log" class="chat-log"></div>
+    <div id="chat-emotes" class="chat-emotes"><button>👍</button><button>😂</button><button>🤭</button><button>😴</button><button>☕</button><button>🔥</button><button>❤️</button></div>
+    <form id="chat-form" class="chat-form"><input id="chat-input" maxlength="300" placeholder="메시지 입력…" autocomplete="off"><button class="btn primary">전송</button></form>
+    <button id="chat-pill" class="chat-pill">💬<i id="chat-badge" hidden>0</i></button>
+  </section>
+
+  <div id="ring" class="ring" aria-hidden="true"></div>
+  <div id="modal" class="modal"><div class="modal-card"></div></div>
+  <div id="toast" class="toast"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/gacha.js"></script>
+  <script src="vendor/trystero.min.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/music.js"></script>
+  <script src="js/stage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

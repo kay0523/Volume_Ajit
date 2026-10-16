@@ -212,7 +212,7 @@
 
     if (c.task && c.task.phase === 'do') {
       seatChar(c);
-      if (!c.task.manual && performance.now() > c.task.until) { standUp(c); c.aiT = 0.5 + Math.random(); }
+      if (performance.now() > c.task.until) { standUp(c); c.aiT = 0.6 + Math.random() * 0.8; } // then back to auto-play
       return;
     }
     if (c.pose === 'zone' && !c.task) {
@@ -239,7 +239,9 @@
       if (!c.steps.length) {
         if (c.task) {
           c.task.phase = 'do';
-          c.task.until = performance.now() + (9 + Math.random() * 14) * 1000;
+          // A spot you sent them to is a short visit (do the thing, then wander again); their own picks last longer.
+          const MANUAL_STAY = { listen: 5, crank: 4, sip: 7, warm: 8, read: 9, zone: 8, sit: 8, lie: 10, tent: 10 };
+          c.task.until = performance.now() + (c.task.manual ? (MANUAL_STAY[layout.byId[c.task.spot].pose] || 7) : 9 + Math.random() * 14) * 1000;
           seatChar(c);
           if (NG.stage.onArrive) NG.stage.onArrive(c.id, c.task.spot, c.task.manual);
           return;
@@ -1151,7 +1153,7 @@
         break;
       case 'down':
         if (c.ground && levelOf(c) === 1 && c.x > layout.loftX1 - 70) { c.dropUntil = performance.now() + 250; c.ground = false; c.vy = 0; c.vx = c.dir * 60; c.aiT = 3; }
-        else { c.animT = 0; c.pose = 'zone'; c.vx = 0; c.aiT = 14; }
+        else { c.animT = 0; c.pose = 'zone'; c.vx = 0; c.aiT = 6; }
         break;
       case 'wave': anim('wave', 1.8, '👋'); break;
       case 'dance': anim('dance', 4, null); break;

@@ -974,8 +974,13 @@
       : NG.net.mode === 'claude' ? '🟢 claude.ai 공유 (링크를 연 팀원끼리 채팅·상태·게시판 공유)'
       : NG.net.online ? '🟢 팀 서버 연결 (채팅·상태·게시판 공유)' : '🟡 로컬 모드 (같은 브라우저 탭끼리만 공유)';
     $('#set-popup').hidden = NG.net.mode === 'claude';
+    $('#set-reconnect').hidden = NG.net.mode !== 'p2p';
   }
   $('#set-change').addEventListener('click', () => askIdentity(true));
+  const reconnect = () => { if (NG.net.mode !== 'p2p') return; NG.net.reconnect(); toast('🔄 다시 연결하는 중… 팀원이 있으면 몇 초 안에 보여요'); };
+  $('#set-reconnect').addEventListener('click', reconnect);
+  $('#net').addEventListener('click', reconnect);
+  $('#net').style.cursor = 'pointer';
   $('#set-team-save').addEventListener('click', () => {
     const v = $('#set-team').value.trim();
     if (!v) return;

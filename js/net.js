@@ -100,7 +100,8 @@
   function startP2P() {
     if (!window.Trystero || !window.RTCPeerConnection) return false;
     const team = teamCode();
-    const room = window.Trystero.joinRoom({ appId: 'volume-ajit-v1', password: 'ajit:' + team }, 'ajit-' + team);
+    // Signalling goes through 10 public relays (not the default 5) so one or two being down doesn't strand anyone.
+    const room = window.Trystero.joinRoom({ appId: 'volume-ajit-v1', password: 'ajit:' + team, relayConfig: { redundancy: 10 } }, 'ajit-' + team);
     const msg = room.makeAction('msg'), sync = room.makeAction('sync');
     const take = (raw) => {
       const m = sanitize(raw); if (!m) return;
@@ -118,10 +119,27 @@
     const changed = () => { NG.ui && NG.ui.setNet(true, peers()); };
     room.onPeerJoin = (id) => { sync.send({ ...localState(), chat: [] }, { target: id }).catch(() => {}); changed(); };
     room.onPeerLeave = () => changed();
-    p2p = { room, msg, peers };
+    p2p = { room, msg, peers, joinedAt: Date.now() };
     setTimeout(changed, 0);
     return true;
   }
+  function rejoinP2P() {
+    if (!p2p) return;
+    try { p2p.room.leave(); } catch { /* already gone */ }
+    p2p = null;
+    startP2P();
+  }
+  // Watchdog: while nobody is connected, rejoin every 30 s (every 2 min after the first 5 minutes alone),
+  // which re-announces us on the relays and clears half-open connections left over from a reload.
+  let aloneSince = Date.now();
+  setInterval(() => {
+    if (!p2p) return;
+    if (p2p.peers() > 0) { aloneSince = Date.now(); return; }
+    const alone = Date.now() - aloneSince, sinceJoin = Date.now() - p2p.joinedAt;
+    if (sinceJoin > (alone < 300000 ? 30000 : 120000)) rejoinP2P();
+  }, 5000);
+  // Leave cleanly so the others drop our old connection at once and re-pair quickly when we come back.
+  window.addEventListener('pagehide', () => { try { if (p2p) p2p.room.leave(); } catch { /* closing */ } });
 
   // claude.ai Artifact backend: shared db collections (chat / notes / players) + room for emotes.
   let db = null, room = null, ready = false;
@@ -214,6 +232,7 @@
       return remember(localState());
     },
     get peers() { return p2p ? p2p.peers() : 0; },
+    reconnect() { if (this.mode === 'p2p') rejoinP2P(); },
     get team() { return teamCode(); },
     setTeam(code) { try { localStorage.setItem(TEAM_KEY, String(code).trim().slice(0, 32) || 'volume'); } catch { /* blocked */ } },
 

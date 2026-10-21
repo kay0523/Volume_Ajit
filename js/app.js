@@ -304,6 +304,38 @@
     const t = e.target.closest('[data-gtab]'); if (t) { openGachaShop(t.dataset.gtab); return; }
     const c = e.target.closest('.gcard:not(.locked)'); if (c) showGachaItem(c.dataset.key, gItem(c.dataset.key, c.dataset.item));
   });
+  // ---------- pets: tap one to feed or play ----------
+  me.petLove = me.petLove || {};
+  const PET_MENU = { d: ['kibble', 'goguma', 'treat', 'churu', 'pat', 'play'], c: ['kibble', 'churu', 'treat', 'goguma', 'pat', 'play'] };
+  const petLabel = (sp, k) => (sp === 'c' && k === 'treat' ? ['🐟', '생선 간식'] : sp === 'c' && k === 'play' ? ['🪶', '낚싯대 놀이'] : [NG.stage.PET_FOOD[k].e, NG.stage.PET_FOOD[k].n]);
+  const petCool = {};
+  let petTimer = null;
+  function openPet(i) {
+    const info = NG.stage.petInfo(i);
+    const love = me.petLove[info.id] || 0, lv = Math.min(5, 1 + Math.floor(love / 4));
+    const card = modal(`<div class="pet-head"><span class="pet-e">${info.sp === 'd' ? '🐶' : '🐱'}</span><div><h3>${esc(info.name)} <small>${esc(info.breed)}</small></h3>
+      <p class="sub">친밀도 ${'❤️'.repeat(lv)}${'🤍'.repeat(5 - lv)} · ${love}번 돌봄</p></div></div>
+      <p class="pet-doing">지금: <b id="pet-doing">${esc(info.doing)}</b></p>
+      <div class="pet-acts">${PET_MENU[info.sp].map((k) => { const [e, n] = petLabel(info.sp, k); return `<button class="btn" data-petfeed="${k}" data-pet="${i}">${e} ${n}</button>`; }).join('')}</div>
+      <div class="row"><button class="btn" data-close>닫기</button></div>`, 'pet-modal');
+    clearInterval(petTimer);
+    petTimer = setInterval(() => { const el = $('#pet-doing', card); if (!el || !$('#modal').classList.contains('show')) { clearInterval(petTimer); return; } el.textContent = NG.stage.petInfo(i).doing; }, 800);
+  }
+  NG.stage.onPet = (i) => { if (me.slot == null) { askIdentity(); return; } openPet(i); };
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-petfeed]'); if (!b) return;
+    const i = +b.dataset.pet, k = b.dataset.petfeed, info = NG.stage.petInfo(i);
+    if (Date.now() < (petCool[i] || 0)) { toast(`${info.name}${NG.stage.batchim(info.name) ? '은' : '는'} 아직 ${NG.stage.PET_FOOD[k].at === 'bowl' ? '먹는' : '노는'} 중이에요`); return; }
+    petCool[i] = Date.now() + 4000;
+    NG.stage.feedPet(i, k, me.slot);
+    NG.net.send({ type: 'act', slot: me.slot, a: `pf:${i}:${k}` });
+    me.petLove[info.id] = (me.petLove[info.id] || 0) + 1;
+    me.focus = Math.min(100, me.focus + 3); gainExp(2); save();
+    const [e2, n] = petLabel(info.sp, k);
+    toast(info.sp === 'c' && k === 'goguma' ? `${e2} ${info.name}: 냥… 고구마는 별로래요 🙄` : `${e2} ${info.name}에게 ${n}! 정신력 +3`);
+    closeModal();
+  });
+
   NG.stage.onGacha = (key) => {
     if (me.slot == null) { askIdentity(); return; }
     NG.stage.act(me.slot, 'spot:gacha'); NG.net.send({ type: 'act', slot: me.slot, a: 'spot:gacha' });
@@ -1028,7 +1060,12 @@
       NG.stage.setPlayer(m.slot, m.name, m.status, m.look || null);
       if ($('#w-status').classList.contains('open')) renderStatus();
     } else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
-    else if (m.type === 'act') { if (m.slot !== me.slot && m.a !== 'dart') NG.stage.act(m.slot, m.a); }
+    else if (m.type === 'act') {
+      if (m.slot === me.slot) return;
+      const pf = /^pf:(\d):(\w+)$/.exec(m.a);
+      if (pf) NG.stage.feedPet(+pf[1], pf[2], m.slot);
+      else if (m.a !== 'dart') NG.stage.act(m.slot, m.a);
+    }
     else if (m.type === 'pos') { if (m.slot !== me.slot) NG.stage.applyRemote(m.slot, m); }
     else if (m.type === 'music') {
       const fresh = !shared.music || shared.music.vid !== m.vid || shared.music.startedAt !== m.startedAt;

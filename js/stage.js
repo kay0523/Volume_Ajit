@@ -491,6 +491,332 @@
     ctx.textAlign = 'left';
   }
 
+  // ---------- pets: 5 dogs + 5 cats wander the room ----------
+  // What each pet does comes from a shared clock (like the weather), so everyone in the room sees the same
+  // pet pick the same person and the same action. Only feeding/petting travels over the network.
+  const PET_DEFS = [
+    // id, 이름, 종, 품종, 몸, 진한 색, 밝은 색, 귀, 꼬리, 무늬, 크기
+    ['ttun', '뚠이', 'd', '시바견', '#d98a4a', '#a8602e', '#f6e8d6', 'up', 'curl', 'mask', 1],
+    ['kong', '콩이', 'd', '말티즈', '#f4f1ea', '#d9d2c4', '#ffffff', 'flop', 'fluff', 'none', 0.8],
+    ['bori', '보리', 'd', '웰시코기', '#e09a52', '#b36f34', '#f8efe2', 'up', 'stub', 'mask', 0.95],
+    ['choco', '초코', 'd', '토이푸들', '#8a5a3a', '#6a4028', '#a87a58', 'flop', 'fluff', 'none', 0.85],
+    ['dubu', '두부', 'd', '진돗개', '#efe6d4', '#d8cbb0', '#fbf6ea', 'up', 'curl', 'none', 1.1],
+    ['nabi', '나비', 'c', '치즈냥', '#eaa458', '#c97a34', '#fbecd6', 'cat', 'long', 'stripe', 0.9],
+    ['kkami', '까미', 'c', '올블랙', '#3a3540', '#26222c', '#4a4452', 'cat', 'long', 'none', 0.9],
+    ['momo', '모모', 'c', '삼색이', '#f4efe6', '#3a3540', '#e09a52', 'cat', 'long', 'calico', 0.9],
+    ['ruru', '루루', 'c', '러시안 블루', '#8e96a6', '#6e7686', '#a8b0be', 'cat', 'long', 'none', 0.95],
+    ['hotteok', '호떡', 'c', '고등어냥', '#9a8a72', '#5e5244', '#e6dccb', 'cat', 'long', 'stripe', 1],
+  ];
+  // [key, 행동, 대상, 자세, 종(d/c/''), 이모지]  — 대상: pl 발치 · front 앞에 마주보기 · lap 무릎 · head 머리 위 · follow 따라가기
+  // · pet 다른 친구 · petLie 친구 옆 · free 아무 데 · zoom 우다다 · bowl 밥그릇 · sofa · door · board · spot:<쉼터>
+  const PET_BEH = [
+    ['rub', '부비부비', 'pl', 'rub', '', '💕'],
+    ['lap', '무릎 위에 앉기', 'lap', 'loaf', '', '☺️'],
+    ['head', '머리 위에 올라앉기', 'head', 'loaf', '', '😼'],
+    ['aegyo', '애교 부리기', 'front', 'wiggle', '', '💖'],
+    ['leanSleep', '기대서 자기', 'pl', 'sleep', '', '💤'],
+    ['nap', '낮잠 자기', 'free', 'sleep', '', '💤'],
+    ['eat', '사료 먹기', 'bowl', 'eat', '', '🍚'],
+    ['stare', '츄르 달라고 쳐다보기', 'front', 'beg', '', '🥺'],
+    ['follow', '졸졸 따라다니기', 'follow', 'walk', '', '🐾'],
+    ['belly', '배 보여주기', 'front', 'belly', '', '🥰'],
+    ['tail', '꼬리 잡기 뱅글뱅글', 'free', 'spin', 'd', '🌀'],
+    ['zoom', '우다다 달리기', 'zoom', 'run', '', '💨'],
+    ['groom', '그루밍', 'free', 'groom', 'c', '✨'],
+    ['stretch', '기지개 켜기', 'free', 'stretch', '', '🙆'],
+    ['window', '창밖 구경', 'spot:window', 'sit', '', '👀'],
+    ['stove', '난로 앞에서 몸 녹이기', 'spot:stove', 'loaf', '', '🔥'],
+    ['sofa', '소파 차지하기', 'sofa', 'sleep', '', '😌'],
+    ['talk', '말 걸기', 'front', 'sit', '', '💬'],
+    ['sniff', '킁킁 냄새 맡기', 'pl', 'eat', '', '👃'],
+    ['lick', '핥아주기', 'pl', 'beg', 'd', '👅'],
+    ['paw', '손!', 'front', 'beg', 'd', '🐾'],
+    ['knead', '꾹꾹이', 'lap', 'knead', 'c', '🍞'],
+    ['play', '친구랑 장난치기', 'pet', 'wiggle', '', '⚡'],
+    ['cuddle', '친구랑 붙어 자기', 'petLie', 'sleep', '', '💞'],
+    ['hunt', '사냥 자세 (엉덩이 씰룩)', 'free', 'hunt', 'c', '👁️'],
+    ['music', '주크박스 음악 감상', 'spot:jukebox', 'sit', '', '🎵'],
+    ['loaf', '식빵 굽기', 'free', 'loaf', 'c', '🍞'],
+    ['yawn', '하품하기', 'free', 'sit', '', '🥱'],
+    ['roll', '뒹굴뒹굴', 'free', 'belly', '', '🌀'],
+    ['hide', '콩주머니에 숨기', 'spot:manga', 'hide', '', '🙈'],
+    ['fetch', '장난감 물어오기', 'front', 'sit', 'd', '🎾'],
+    ['pretty', '얌전히 앉아 있기', 'front', 'sit', '', '😇'],
+    ['headbutt', '박치기 인사', 'pl', 'rub', 'c', '💥'],
+    ['dart', '다트판 구경', 'board', 'sit', '', '🎯'],
+    ['shake', '몸 털기', 'free', 'shake', 'd', '💦'],
+    ['guard', '문 지키기', 'door', 'sit', 'd', '🛡️'],
+    ['box', '상자에 쏙 들어가기', 'free', 'box', 'c', '📦'],
+    ['gacha', '가챠 구경', 'spot:gacha', 'sit', '', '🎰'],
+  ].map(([k, n, tg, pose, sp, e]) => ({ k, n, tg, pose, sp, e }));
+  const PET_FOOD = {
+    kibble: { n: '사료', e: '🥣', at: 'bowl' }, churu: { n: '츄르', e: '🍡', at: 'hand' }, goguma: { n: '고구마', e: '🍠', at: 'hand' },
+    treat: { n: '간식', e: '🦴', at: 'hand' }, pat: { n: '쓰다듬기', e: '✋', at: 'hand' }, play: { n: '놀아주기', e: '🎾', at: 'hand' },
+  };
+  const pets = PET_DEFS.map(([id, name, sp, breed, body, dark, light, ear, tail, pat, size], i) => ({
+    id, i, name, sp, breed, body, dark, light, ear, tail, pat, size,
+    x: 120 + i * 50, y: 0, mode: 'ground', vy: 0, dir: i % 2 ? -1 : 1, walkT: 0, hop: null,
+    beh: null, slot: -1, target: null, fed: null, emoteT: 0, period: 10 + (i * 7) % 6, ofs: i * 3.7, at: false,
+  }));
+  const PS = 1.65; // pet sprite scale
+  const petLevel = (p) => (p.x <= layout.loftX1 + 2 && p.y <= layout.loftY + 4 ? 1 : 0);
+  const charSitting = (c) => !!(c.task && c.task.phase === 'do' && SIT_POSES[c.pose]) || (c.pose === 'zone') || (c.sit && c.ground);
+  const charLevel = (c) => (c.task && c.task.phase === 'do' ? layout.byId[c.task.spot]?.seats[c.task.seat]?.level ?? 0 : levelOf(c));
+  function pickBeh(p, slot) {
+    const h = hashN(p.id + ':' + slot);
+    const allowed = PET_BEH.filter((b) => !b.sp || b.sp === p.sp);
+    let b = allowed[h % allowed.length];
+    const ids = chars.filter((c) => !c.gone).map((c) => c.id).sort();
+    if (!ids.length && /^(pl|front|lap|head|follow)$/.test(b.tg)) b = allowed.find((x) => x.k === 'nap');
+    return { b, who: ids.length ? ids[(h >>> 8) % ids.length] : null, other: pets[(p.i + 1 + ((h >>> 4) % 9)) % pets.length], r: ((h >>> 12) % 1000) / 1000 };
+  }
+  // Where the pet should be right now: x, the floor level it stands on, and a perch y when it sits on someone.
+  function petGoal(p) {
+    const W = view.WW, F = view.floor, side = p.i % 2 ? -1 : 1, gap = 20 + (p.i % 3) * 10;
+    const fed = p.fed && performance.now() < p.fed.until ? p.fed : null;
+    if (fed) {
+      const c = getChar(fed.by);
+      if (PET_FOOD[fed.kind].at === 'bowl' || !c) return { x: layout.stoveX + 60 + (p.i % 3) * 9, lv: 0 };
+      return { x: c.x + c.dir * 16, lv: charLevel(c), face: c.x };
+    }
+    const { b, who, other, r } = p.beh;
+    const c = who ? getChar(who) : null;
+    const spot = (id, dx = 0) => { const s = layout.byId[id]; return s ? { x: (s.hit.x0 + s.hit.x1) / 2 + dx + side * (p.i % 3) * 6, lv: s.seats[0].level } : { x: W / 2, lv: 0 }; };
+    switch (b.tg) {
+      case 'pl': return c ? { x: c.x + side * gap, lv: charLevel(c), face: c.x } : { x: W * r, lv: 0 };
+      case 'front': return c ? { x: c.x + (c.dir || 1) * (22 + (p.i % 3) * 7), lv: charLevel(c), face: c.x } : { x: W * r, lv: 0 };
+      case 'follow': return c ? { x: c.x - (c.dir || 1) * gap, lv: charLevel(c), face: c.x, run: true } : { x: W * r, lv: 0 };
+      case 'lap':
+        if (c && charSitting(c) && c.pose !== 'lie' && c.pose !== 'tent') return { x: c.x + c.dir * 7, lv: charLevel(c), perch: c.y - 10, face: c.x + c.dir * 40 };
+        return c ? { x: c.x + side * gap, lv: charLevel(c), face: c.x } : { x: W * r, lv: 0 };
+      case 'head':
+        if (c && c.pose !== 'lie' && c.pose !== 'tent' && !c.climbing && c.ground !== false) return { x: c.x, lv: charLevel(c), perch: c.y - (charSitting(c) ? 62 : 70), face: c.x + c.dir * 40 };
+        return c ? { x: c.x + side * gap, lv: charLevel(c), face: c.x } : { x: W * r, lv: 0 };
+      case 'pet': return { x: other.x + (p.x < other.x ? -26 : 26), lv: petLevel(other), face: other.x };
+      case 'petLie': return { x: other.x + (p.x < other.x ? -24 : 24), lv: petLevel(other), face: other.x };
+      case 'zoom': return { x: (Math.floor(performance.now() / 2600 + p.i) % 2 ? 0.12 : 0.88) * W, lv: 0, run: true };
+      case 'bowl': return { x: layout.stoveX + 60 + (p.i % 3) * 9, lv: 0 };
+      case 'sofa': return { x: (layout.sofaX0 + layout.sofaX1) / 2 + side * (p.i % 3) * 8, lv: 0, perch: F - 20 };
+      case 'door': return { x: W - 22, lv: 0, face: 0 };
+      case 'board': return { x: layout.board.x + side * 12, lv: 0, face: layout.board.x };
+      case 'free': return { x: 30 + r * (W - 60), lv: r < 0.18 && p.sp === 'c' ? 1 : 0, ...(r < 0.18 && p.sp === 'c' ? { x: 30 + r * 4 * (layout.loftX1 - 60) } : {}) };
+      default: return b.tg.startsWith('spot:') ? spot(b.tg.slice(5), b.tg === 'spot:stove' ? 26 : 0) : { x: W * r, lv: 0 };
+    }
+  }
+  function updatePet(p, dt) {
+    if (!p.placed) { p.placed = true; p.y = view.floor; p.x = 40 + ((p.i * 0.37) % 1) * (view.WW - 80); }
+    const now = Date.now() / 1000;
+    const slot = Math.floor((now + p.ofs) / p.period);
+    if (slot !== p.slot || !p.beh) { p.slot = slot; p.beh = pickBeh(p, slot); p.emoteT = 0; p.said = false; }
+    if (p.fed && performance.now() > p.fed.until) { p.fed = null; p.emote = '💖'; p.emoteT = 1.6; }
+    if (p.emoteT > 0) p.emoteT -= dt;
+    const goal = petGoal(p);
+    const F = view.floor;
+    goal.x = Math.max(10, Math.min(view.WW - 10, goal.x));
+    const lvY = (lv) => (lv === 1 ? layout.loftY : F);
+    const speed = (goal.run ? 125 : 58) * (p.sp === 'c' ? 1.05 : 1);
+    p.at = false;
+    if (p.mode === 'perch') {
+      if (goal.perch != null && Math.abs(goal.x - p.x) < 40 && Math.abs(goal.perch - p.y) < 50) { p.x += (goal.x - p.x) * Math.min(1, dt * 12); p.y += (goal.perch - p.y) * Math.min(1, dt * 12); p.at = true; }
+      else { p.mode = 'air'; p.vy = -60; }
+    } else if (p.mode === 'hop') {
+      const h = p.hop; h.t += dt / 0.4;
+      const k = Math.min(1, h.t);
+      p.x = h.x0 + (goal.x - h.x0) * k; p.y = h.y0 + ((goal.perch ?? h.y1) - h.y0) * k - Math.sin(k * Math.PI) * 18;
+      if (k >= 1) { p.mode = goal.perch != null ? 'perch' : 'ground'; p.hop = null; }
+    } else if (p.mode === 'air') {
+      p.vy += G * 0.8 * dt; const prevY = p.y; p.y += p.vy * dt;
+      if (p.y >= F) { p.y = F; p.mode = 'ground'; }
+      else if (p.x <= layout.loftX1 && prevY <= layout.loftY && p.y >= layout.loftY) { p.y = layout.loftY; p.mode = 'ground'; }
+    } else if (p.mode === 'climb') {
+      const ty = lvY(p.climbTo), d = ty - p.y;
+      p.x = layout.ladderX; p.walkT += dt * 6;
+      if (Math.abs(d) < 3) { p.y = ty; p.mode = 'ground'; } else p.y += Math.sign(d) * Math.min(Math.abs(d), 70 * dt);
+    } else {
+      const lv = petLevel(p);
+      p.y = lv === 1 ? layout.loftY : F; // stay on the floor after a resize
+      if (p.y < F - 2 && p.x > layout.loftX1 + 2 && lv === 0) { p.mode = 'air'; p.vy = 0; } // walked off the loft
+      else if (goal.lv !== lv) {
+        const d = layout.ladderX - p.x;
+        if (Math.abs(d) < 3) { p.mode = 'climb'; p.climbTo = goal.lv; } else { p.x += Math.sign(d) * Math.min(Math.abs(d), speed * dt); p.dir = Math.sign(d); p.walkT += dt * 9; }
+      } else {
+        const d = goal.x - p.x;
+        if (Math.abs(d) > 4) { p.x += Math.sign(d) * Math.min(Math.abs(d), speed * dt); p.dir = Math.sign(d); p.walkT += dt * (goal.run ? 16 : 9); }
+        else if (goal.perch != null) { p.mode = 'hop'; p.hop = { t: 0, x0: p.x, y0: p.y, y1: goal.perch }; }
+        else {
+          p.at = true;
+          if (goal.face != null && Math.abs(goal.face - p.x) > 2) p.dir = Math.sign(goal.face - p.x);
+        }
+      }
+    }
+    if (p.at && !p.said) {
+      p.said = true;
+      const fed = p.fed;
+      if (fed) { p.emote = p.sp === 'c' && fed.kind === 'goguma' ? '🙄' : p.sp === 'c' && fed.kind === 'treat' ? '🐟' : PET_FOOD[fed.kind].e; }
+      else p.emote = p.beh.b.k === 'talk' ? (p.sp === 'd' ? '멍!' : '냐옹~') : p.beh.b.e;
+      p.emoteT = 2.2;
+    }
+  }
+  function petPose(p) {
+    if (p.mode === 'air' || p.mode === 'hop') return 'air';
+    if (p.mode === 'climb') return 'walk';
+    if (p.fed && performance.now() < p.fed.until) {
+      if (!p.at) return 'walk';
+      const k = p.fed.kind;
+      return k === 'pat' ? 'belly' : k === 'play' ? 'wiggle' : p.sp === 'c' && k === 'goguma' ? 'sit' : 'eat';
+    }
+    if (!p.at) return petGoal(p).run ? 'run' : 'walk';
+    return p.beh.b.pose;
+  }
+  function drawPet(p, t) {
+    const pose = petPose(p);
+    const cat = p.sp === 'c';
+    const step = Math.sin(p.walkT);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    if (pose !== 'air' && p.mode !== 'perch') { ctx.fillStyle = 'rgba(40,30,25,.2)'; ctx.beginPath(); ctx.ellipse(0, 0, 11 * p.size * PS, 3, 0, 0, 7); ctx.fill(); }
+    ctx.scale(p.dir * p.size * PS, p.size * PS);
+    if (pose === 'spin') ctx.scale(Math.cos(t * 9), 1);
+    if (pose === 'shake') ctx.translate(Math.sin(t * 40) * 1.5, 0);
+    if (pose === 'run') ctx.translate(0, -Math.abs(step) * 2);
+    if (pose === 'wiggle') ctx.translate(0, -Math.abs(Math.sin(t * 10)) * 2.5);
+    const B = p.body, D = p.dark, L = p.light;
+    const ell = (x, y, rx, ry, c, rot = 0) => { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot, 0, 7); ctx.fill(); };
+    const leg = (x, y, h, a = 0) => { ctx.save(); ctx.translate(x, y); ctx.rotate(a); box(-1.4, 0, cat ? 2.6 : 3, h, B); box(-1.6, h - 1.5, cat ? 3 : 3.6, 1.8, L); ctx.restore(); };
+    const tailWag = Math.sin(t * (pose === 'wiggle' || pose === 'beg' || pose === 'rub' ? 14 : 3) + p.i) * 0.5;
+    const tail = (x, y, up) => {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(tailWag * (up ? 1 : 0.4));
+      if (p.tail === 'curl') { ctx.strokeStyle = B; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(-2, -3, 3, 0.3, 5.6); ctx.stroke(); }
+      else if (p.tail === 'stub') ell(-1, -1, 2, 1.6, B);
+      else if (p.tail === 'fluff') ell(-2, -2, 3, 3, L);
+      else { ctx.strokeStyle = B; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0);
+        if (up) ctx.quadraticCurveTo(-7, -3, -6, -12); else ctx.quadraticCurveTo(-6, 2, -12, 1); ctx.stroke();
+        if (p.pat === 'stripe') { ctx.strokeStyle = D; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(-6.5, up ? -8 : 1.6); ctx.lineTo(-6, up ? -6 : 1.8); ctx.stroke(); } }
+      ctx.restore();
+    };
+    const head = (x, y, opts = {}) => {
+      ctx.save(); ctx.translate(x, y); if (opts.rot) ctx.rotate(opts.rot);
+      const r = cat ? 5.6 : 6.4;
+      if (p.ear === 'up' || p.ear === 'cat') {
+        ctx.fillStyle = p.pat === 'calico' ? D : (cat ? B : D);
+        ctx.beginPath(); ctx.moveTo(-4.5, -3); ctx.lineTo(-3.5, -r - 5); ctx.lineTo(0, -r + 0.5); ctx.fill();
+        ctx.fillStyle = cat ? B : D; ctx.beginPath(); ctx.moveTo(0.5, -r + 0.5); ctx.lineTo(3.5, -r - 5); ctx.lineTo(5, -2.5); ctx.fill();
+      }
+      ell(0, 0, r, r * 0.92, B);
+      if (p.pat === 'mask') ell(2.5, 2, 4, 3, L);
+      if (p.pat === 'calico') ell(-2.5, -2, 3, 3, '#e09a52');
+      if (p.pat === 'stripe') { box(-1.5, -r + 0.6, 1.2, 3, D); box(1, -r + 0.6, 1.2, 2.6, D); }
+      if (p.ear === 'flop') { ell(-4.5, 1, 2.6, 4.8, D, 0.2); }
+      if (!cat) ell(5.2, 2.2, 3.4, 2.4, L);
+      box(cat ? 4.6 : 7.4, cat ? 1.2 : 1, cat ? 1.6 : 2, 1.6, '#2b2233'); // nose
+      const closed = opts.sleep || (p.blink = (t * 0.4 + p.i * 0.37) % 1 < 0.04);
+      if (closed) box(1.4, -1.2, 2.8, 1, '#2b2233'); else box(2, -2.2, 1.8, 2.4, cat && p.body === '#3a3540' ? '#e8c24a' : '#2b2233');
+      if (opts.tongue) box(5.5, 4, 2, 2.5, '#e8788a');
+      if (opts.yawn) ell(5, 3, 1.8, 1.6, '#7a2f3a');
+      ctx.restore();
+    };
+    switch (pose) {
+      case 'sleep': case 'loaf': case 'knead': case 'hide': case 'box': {
+        if (pose === 'box') { box(-12, -11, 24, 11, '#c4a57c'); box(-13, -12, 26, 2, '#a4845e'); }
+        if (pose === 'sleep') { tail(-9, -3, false); ell(0, -4.6, 11, 4.8, B); if (p.pat === 'calico') ell(-3, -6, 4, 2.5, D); ell(8, -5.5, 5.4, 4.6, B); head(8, -5.5, { sleep: true }); }
+        else {
+          if (pose !== 'box') { tail(-8, -2, false); ell(0, -6, 10, 6.4, B); if (p.pat === 'stripe') { box(-4, -11.5, 1.4, 4, D); box(0, -12, 1.4, 4, D); } if (p.pat === 'calico') ell(-3, -8, 4, 3, D); }
+          if (pose === 'knead') { const k = Math.sin(t * 6) > 0; box(6, k ? -3 : -2, 3, 3, L); box(9, k ? -2 : -3, 3, 3, L); }
+          head(7, pose === 'box' ? -13 : -11, { sleep: pose === 'loaf' && Math.sin(t * 0.7 + p.i) > 0.6 });
+          if (pose === 'hide') { ell(-2, -4, 12, 7, '#9c4a3f'); }
+        }
+        break;
+      }
+      case 'sit': case 'beg': case 'groom': {
+        tail(-5, -2, false);
+        ell(0, -9, 7, 9, B); ell(2.5, -8, 3.6, 6, L);
+        if (p.pat === 'calico') ell(-3, -12, 3, 3, D);
+        if (p.pat === 'stripe') { box(-5, -14, 3, 1.3, D); box(-6, -10, 3, 1.3, D); }
+        if (pose === 'beg') { box(3, -15, 3, 3, L); box(5, -14, 3, 3, L); }
+        else { box(1, -3, 2.6, 3, L); box(4, -3, 2.6, 3, L); }
+        if (pose === 'groom') { head(1, -19, { rot: 0.6 + Math.sin(t * 5) * 0.1, tongue: true }); box(3, -14 + Math.sin(t * 5), 3, 3, L); }
+        else head(3, -20, { yawn: p.beh && p.beh.b.k === 'yawn' && p.at, tongue: pose === 'beg' && !cat });
+        if (p.beh && p.beh.b.k === 'fetch' && p.at && !(p.fed)) ell(10, -18, 2.6, 2.6, '#c8e04a');
+        break;
+      }
+      case 'belly': {
+        ell(0, -5, 11, 5, B); ell(0, -7.5, 8, 2.6, L);
+        leg(-6, -8, 5, Math.PI + Math.sin(t * 6) * 0.3); leg(-3, -8, 5, Math.PI - Math.sin(t * 6) * 0.3);
+        leg(5, -8, 5, Math.PI + Math.sin(t * 6 + 1) * 0.3); leg(8, -8, 5, Math.PI - Math.sin(t * 6 + 1) * 0.3);
+        tail(-10, -4, false);
+        head(11, -5, { rot: 1.4, sleep: true });
+        break;
+      }
+      default: { // walk, run, rub, eat, wiggle, stretch, hunt, spin, shake, air
+        const low = pose === 'stretch' ? 0.28 : pose === 'hunt' ? 0.08 : 0;
+        const corgi = p.tail === 'stub';
+        const lh = (cat ? 7 : 7.5) * (corgi ? 0.7 : 1);
+        const bodyY = -lh - 4;
+        const walking = pose === 'walk' || pose === 'run' || pose === 'air';
+        const a = walking ? step * (pose === 'run' ? 0.7 : 0.45) : pose === 'air' ? 0.6 : 0;
+        ctx.save(); ctx.rotate(-low);
+        tail(-10, bodyY - 1, true);
+        leg(-7, bodyY + 2, lh, a); leg(6, bodyY + 2, lh, -a);
+        ell(0, bodyY, corgi ? 12 : 10.5, cat ? 5 : 5.8, B);
+        ell(1, bodyY + 2.5, 7, 2.2, L);
+        if (p.pat === 'stripe') for (const sx of [-5, -1.5, 2]) box(sx, bodyY - 5, 1.6, 3.4, D);
+        if (p.pat === 'calico') { ell(-5, bodyY - 2, 4, 3, D); ell(3, bodyY - 3, 3, 2.4, '#e09a52'); }
+        leg(-4, bodyY + 2, lh, -a); leg(9, bodyY + 2, lh, a);
+        const rubbing = pose === 'rub' ? Math.sin(t * 5) * 2 : 0;
+        if (pose === 'eat') head(11, bodyY + 5, {});
+        else if (pose === 'hunt') head(11, bodyY - 2, {});
+        else head(10 + rubbing, bodyY - 6, { tongue: pose === 'run' && !cat, sleep: pose === 'rub' });
+        ctx.restore();
+        if (pose === 'hunt') ctx.translate(Math.sin(t * 16) * 0.8, 0);
+      }
+    }
+    ctx.restore();
+  }
+  function drawBowls() {
+    const x0 = layout.stoveX + 54, F = view.floor;
+    const fedAt = Math.max(0, ...pets.map((p) => (p.fed && p.fed.kind === 'kibble' ? p.fed.until : 0)));
+    rr(x0, F - 5, 11, 5, 2); ctx.fillStyle = '#c0403a'; ctx.fill();
+    box(x0 + 2, F - 7, 7, 2, performance.now() < fedAt + 20000 ? '#a8703a' : '#7a5a3a');
+    rr(x0 + 14, F - 5, 11, 5, 2); ctx.fillStyle = '#3a6ee0'; ctx.fill(); box(x0 + 16, F - 6, 7, 1.5, '#9ad0ff');
+  }
+  function drawPetFx(p, t) {
+    if (p.emoteT <= 0 || !p.emote) return;
+    const T = Math.min(2.4, Math.max(1, 1.45 / view.s));
+    const top = p.y - 25 * p.size * PS;
+    ctx.textAlign = 'center';
+    const txt = /^[가-힣]/.test(p.emote);
+    ctx.font = txt ? `${11 * T}px ${FONT}` : `${14 * T}px sans-serif`;
+    ctx.globalAlpha = Math.min(1, p.emoteT * 2);
+    if (txt) { ctx.fillStyle = '#5e4636'; ctx.fillText(p.emote, p.x, top - (2.2 - p.emoteT) * 6); }
+    else ctx.fillText(p.emote, p.x, top - (2.2 - p.emoteT) * 6);
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    void t;
+  }
+  function petAt(pt) {
+    return pets.find((p) => Math.abs(pt.x - p.x) < 13 * p.size * PS && pt.y < p.y + 4 && pt.y > p.y - 24 * p.size * PS) || null;
+  }
+  function feedPet(i, kind, by) {
+    const p = pets[i];
+    if (!p || !PET_FOOD[kind]) return;
+    p.fed = { kind, by, until: performance.now() + (kind === 'pat' || kind === 'play' ? 5000 : 7000) };
+    p.said = false;
+    const c = getChar(by);
+    if (c) { c.emote = p.sp === 'c' && kind === 'treat' ? '🐟' : PET_FOOD[kind].e; c.emoteT = 1.6; }
+  }
+  const batchim = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 !== 0; };
+  function petInfo(p) {
+    const fed = p.fed && performance.now() < p.fed.until ? p.fed : null;
+    let doing;
+    if (fed) { const c = getChar(fed.by); doing = `${c ? c.name + '님이 준 ' : ''}${PET_FOOD[fed.kind].n} ${fed.kind === 'pat' ? '받는 중' : fed.kind === 'play' ? '하는 중' : '먹는 중'}`; }
+    else {
+      const { b, who, other } = p.beh;
+      const c = who ? getChar(who) : null;
+      const target = /^(pl|front|lap|head|follow)$/.test(b.tg) && c ? `${c.name}에게 ` : /^pet/.test(b.tg) ? `${other.name}${batchim(other.name) ? '과' : '와'} ` : '';
+      doing = target + b.n;
+    }
+    return { i: p.i, id: p.id, name: p.name, sp: p.sp, breed: p.breed, doing };
+  }
+
   // ---------- room: background layer (no outline) ----------
   function timeMood() {
     const h = new Date().getHours() + new Date().getMinutes() / 60;
@@ -1173,7 +1499,8 @@
     if (ev.pointerType !== 'mouse') return;
     const p = toLogical(ev);
     const mh = layout.machines.find((m) => inHit(p, m.hit));
-    hover = mh ? { hit: mh.hit, e: NG.GACHA[mh.key].e, n: NG.GACHA[mh.key].n } : layout.spots.find((s) => inHit(p, s.hit)) || null;
+    const pt = petAt(p);
+    hover = pt ? { hit: { x0: pt.x - 10, x1: pt.x + 10, y0: pt.y - 24 * pt.size * PS, y1: pt.y }, e: pt.sp === 'd' ? '🐶' : '🐱', n: pt.name } : mh ? { hit: mh.hit, e: NG.GACHA[mh.key].e, n: NG.GACHA[mh.key].n } : layout.spots.find((s) => inHit(p, s.hit)) || null;
     const b = layout.board;
     canvas.style.cursor = hover || Math.hypot(p.x - b.x, p.y - b.y) < b.r * 1.3 ? 'pointer' : 'default';
   });
@@ -1188,6 +1515,8 @@
     for (const h of layout.figureHits || []) {
       if (Math.hypot(p.x - h.x, p.y - h.y) < 10) { NG.ui.showFigure(h.f); return; }
     }
+    const pet = petAt(p);
+    if (pet && NG.stage.onPet) { NG.stage.onPet(pet.i); return; }
     for (const c of chars) {
       if (Math.abs(p.x - c.x) < 16 && p.y < c.y + 16 && p.y > headTop(c)) {
         c.emote = ['❤️', '✨', '❓', '💦', '👋'][Math.floor(Math.random() * 5)]; c.emoteT = 1.4;
@@ -1325,6 +1654,7 @@
     const t = now / 1000;
     if (!layout) { requestAnimationFrame(frame); return; }
     for (const c of chars) updateChar(c, dt);
+    for (const p of pets) updatePet(p, dt);
     for (const c of chars.filter((x) => x.gone)) { removeChar(c.id); if (NG.stage.onLeave) NG.stage.onLeave(c.id, c.name); }
     updateDart(dt);
     const mood = timeMood();
@@ -1345,7 +1675,9 @@
     drawProps(t, musicOn);
     drawBoard();
     const sorted = [...chars].sort((a, b) => a.y - b.y);
+    drawBowls();
     for (const c of sorted) drawChar(c, t);
+    for (const p of [...pets].sort((a, b) => (a.mode === 'perch') - (b.mode === 'perch') || a.y - b.y)) drawPet(p, t);
     drawFlying();
     bctx.setTransform(1, 0, 0, 1, 0, 0);
     outlined(bctx, objL, tctx, bw, bh);
@@ -1378,6 +1710,7 @@
     main.setTransform(view.s * view.dpr, 0, 0, view.s * view.dpr, -cx * view.s * view.dpr, 0);
     drawAim();
     for (const c of sorted) drawCharFx(c, t);
+    for (const p of pets) drawPetFx(p, t);
     for (const c of sorted) drawLabels(c);
     if (hover && !dart.active) tag((hover.hit.x0 + hover.hit.x1) / 2, hover.hit.y0 - 4, `${hover.e} ${hover.n}`);
     drawDartHud(t);
@@ -1548,6 +1881,7 @@
     emote(id, e) { const c = getChar(id); if (c) { c.emote = e; c.emoteT = 1.8; } },
     myPos() { const c = NG.app ? getChar(NG.app.me) : null; return c ? exportState(c) : null; },
     applyRemote, getChar, defaultLook,
+    pets, PET_FOOD, feedPet, batchim, petInfo: (i) => petInfo(pets[i]),
     setMe(id) { return ensureChar(id); },
     setPlayer(id, name, status, look) {
       profiles[id] = { name, status, look };

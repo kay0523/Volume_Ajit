@@ -592,5 +592,17 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 .pet-e { font-size: 34px; }
 .pet-doing { margin: 8px 0; font-size: 13px; }
 .pet-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.pet-acts .btn { padding: 8px 4px; font-size: 13px; white-space: nowrap; }
+.pet-acts .btn { padding: 8px 4px; font-size: 12.5px; word-break: keep-all; line-height: 1.25; }
 @media (max-width: 360px) { .pet-acts { grid-template-columns: repeat(2, 1fr); } }
+
+/* jazz bar menu */
+.bar-modal .modal-card { width: min(460px, 100%); }
+.bar-h { margin: 10px 0 6px; text-align: left; }
+.bar-menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 6px; }
+.bar-item { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center; text-align: left;
+  border: 2px solid var(--edge); background: var(--paper-hi); border-radius: 3px; padding: 6px; }
+.bar-item span { grid-row: span 2; font-size: 20px; }
+.bar-item b { font-size: 13px; font-weight: normal; font-family: var(--font-b); }
+.bar-item small { font-size: 10.5px; color: var(--sub); line-height: 1.25; word-break: keep-all; }
+.bar-item:hover { border-color: var(--accent); }
+.pet-acts { max-height: 46vh; overflow: auto; }

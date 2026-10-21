@@ -10,7 +10,7 @@
   fitHeight(); addEventListener('resize', fitHeight); if (window.visualViewport) visualViewport.addEventListener('resize', fitHeight);
 
   // ---------- persistent personal state ----------
-  const def = { listen: false, slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 60, figures: {}, shelf: true,
+  const def = { listen: false, slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 300, figures: {}, shelf: true,
     caffeine: 80, focus: 90, exp: 0, lv: 1, best: { dart: 0 }, chatOpacity: 0.55, lastTick: Date.now() };
   let me;
   try { me = { ...def, ...JSON.parse(localStorage.getItem(KEY)) }; } catch { me = { ...def }; }
@@ -20,6 +20,7 @@
   if (typeof me.slot === 'number') me.slot = me.uid; // from the old three-seat version
   if (!me.listenV2) { me.listen = false; me.listenV2 = true; } // shared sound now starts off for everyone
   me.gacha = me.gacha || {}; me.holo = me.holo || {};
+  if (!me.coins300) { me.coins = Math.max(me.coins, 300); me.coins300 = true; } // coins are now plentiful
   if (me.gacha.band) { me.coins += 15 * Object.keys(me.gacha.band).length; delete me.gacha.band; } // band machine became the game machine: refund
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch { /* blocked */ } };
 
@@ -88,6 +89,17 @@
   document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeModal(); });
 
   function addCoins(n) { me.coins += n; renderHud(); }
+  // Coins top back up to 300 two minutes after you dip below it, so gacha never feels like a grind.
+  const COIN_BASE = 300, REFILL_MS = 120000;
+  const refillLeft = () => (me.coins >= COIN_BASE || !me.refillAt ? 0 : Math.max(0, me.refillAt - Date.now()));
+  const refillText = () => { const ms = refillLeft(); if (!ms) return ''; const s2 = Math.ceil(ms / 1000); return `⏳ ${Math.floor(s2 / 60)}:${String(s2 % 60).padStart(2, '0')} 후 ${COIN_BASE}🪙 충전`; };
+  function tickRefill() {
+    if (me.coins >= COIN_BASE) { if (me.refillAt) { me.refillAt = 0; save(); } }
+    else if (!me.refillAt) { me.refillAt = Date.now() + REFILL_MS; save(); }
+    else if (Date.now() >= me.refillAt) { me.coins = COIN_BASE; me.refillAt = 0; save(); renderHud(); toast(`🪙 코인이 ${COIN_BASE}개로 충전됐어요!`); if ($('#w-figures').classList.contains('open')) renderFigures(); }
+    document.querySelectorAll('.coin-refill').forEach((el) => { el.textContent = refillText(); });
+  }
+  setInterval(tickRefill, 1000);
   function gainExp(n) {
     me.exp += n;
     while (me.exp >= me.lv * 100) { me.exp -= me.lv * 100; me.lv++; toast(`✨ LEVEL UP! Lv.${me.lv}`); NG.stage.emote(me.slot, '✨'); }
@@ -239,7 +251,7 @@
     const n = G.items.filter((i) => own[i.id]).length;
     box.innerHTML = `<div class="gshop" style="--gc:${G.color}">
       <div class="gshop-head"><span class="gm">${G.e}</span>
-        <div class="gi"><b>${esc(G.n)}</b><small>${esc(G.desc)}</small><small>수집 ${n} / ${G.items.length}</small></div>
+        <div class="gi"><b>${esc(G.n)}</b><small>${esc(G.desc)}</small><small>수집 ${n} / ${G.items.length}</small><small class="coin-refill">${refillText()}</small></div>
         <button class="btn primary" data-pull="${key}" ${me.coins < G.cost ? 'disabled' : ''}>🎰 ${G.cost}🪙</button></div>
       <div class="gcards">${G.items.map((it) => {
         const has = own[it.id];
@@ -269,8 +281,8 @@
   function pullGacha(key) {
     const G = NG.GACHA[key];
     if (me.slot == null) { askIdentity(); return; }
-    if (me.coins < G.cost) { toast('🪙 코인이 부족해요. 미니게임으로 모아보세요!'); return; }
-    me.coins -= G.cost;
+    if (me.coins < G.cost) { tickRefill(); toast(`🪙 코인이 부족해요 · ${refillText() || '곧 충전돼요'}`); return; }
+    me.coins -= G.cost; tickRefill();
     const present = [1, 2, 3].filter((r) => G.items.some((i) => i.r === r));
     const total = present.reduce((a, r) => a + NG.GACHA_RARITY[r].w, 0);
     let roll = Math.random() * total, rar = present[0];
@@ -306,8 +318,14 @@
   });
   // ---------- pets: tap one to feed or play ----------
   me.petLove = me.petLove || {};
-  const PET_MENU = { d: ['kibble', 'goguma', 'treat', 'churu', 'pat', 'play'], c: ['kibble', 'churu', 'treat', 'goguma', 'pat', 'play'] };
-  const petLabel = (sp, k) => (sp === 'c' && k === 'treat' ? ['🐟', '생선 간식'] : sp === 'c' && k === 'play' ? ['🪶', '낚싯대 놀이'] : [NG.stage.PET_FOOD[k].e, NG.stage.PET_FOOD[k].n]);
+  const petMenu = (sp) => NG.stage.PET_ACTS.filter((a) => !a.sp || a.sp === sp);
+  const petLabel = (sp, k) => { const a = NG.stage.PET_ACTS.find((x) => x.k === k); return sp === 'c' && k === 'treat' ? ['🐟', '생선 간식 주기'] : [a.e, a.n]; };
+  function doPetAct(i, k) { // walk over, do the gesture, and the pet comes to you on every screen
+    NG.stage.petAct(me.slot, i, k);
+    NG.stage.feedPet(i, k, me.slot);
+    NG.net.send({ type: 'act', slot: me.slot, a: `pf:${i}:${k}` });
+  }
+  NG.stage.onPetAct = (id, i, k) => { if (id === me.slot) doPetAct(i, k); }; // auto-play
   const petCool = {};
   let petTimer = null;
   function openPet(i) {
@@ -316,7 +334,7 @@
     const card = modal(`<div class="pet-head"><span class="pet-e">${info.sp === 'd' ? '🐶' : '🐱'}</span><div><h3>${esc(info.name)} <small>${esc(info.breed)}</small></h3>
       <p class="sub">친밀도 ${'❤️'.repeat(lv)}${'🤍'.repeat(5 - lv)} · ${love}번 돌봄</p></div></div>
       <p class="pet-doing">지금: <b id="pet-doing">${esc(info.doing)}</b></p>
-      <div class="pet-acts">${PET_MENU[info.sp].map((k) => { const [e, n] = petLabel(info.sp, k); return `<button class="btn" data-petfeed="${k}" data-pet="${i}">${e} ${n}</button>`; }).join('')}</div>
+      <div class="pet-acts">${petMenu(info.sp).map((a) => { const [e, n] = petLabel(info.sp, a.k); return `<button class="btn" data-petfeed="${a.k}" data-pet="${i}">${e} ${n}</button>`; }).join('')}</div>
       <div class="row"><button class="btn" data-close>닫기</button></div>`, 'pet-modal');
     clearInterval(petTimer);
     petTimer = setInterval(() => { const el = $('#pet-doing', card); if (!el || !$('#modal').classList.contains('show')) { clearInterval(petTimer); return; } el.textContent = NG.stage.petInfo(i).doing; }, 800);
@@ -325,14 +343,13 @@
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-petfeed]'); if (!b) return;
     const i = +b.dataset.pet, k = b.dataset.petfeed, info = NG.stage.petInfo(i);
-    if (Date.now() < (petCool[i] || 0)) { toast(`${info.name}${NG.stage.batchim(info.name) ? '은' : '는'} 아직 ${NG.stage.PET_FOOD[k].at === 'bowl' ? '먹는' : '노는'} 중이에요`); return; }
+    if (Date.now() < (petCool[i] || 0)) { toast(`${info.name}${NG.stage.batchim(info.name) ? '은' : '는'} 아직 ${info.doing.split('· ').pop()}이에요`); return; }
     petCool[i] = Date.now() + 4000;
-    NG.stage.feedPet(i, k, me.slot);
-    NG.net.send({ type: 'act', slot: me.slot, a: `pf:${i}:${k}` });
+    doPetAct(i, k);
     me.petLove[info.id] = (me.petLove[info.id] || 0) + 1;
     me.focus = Math.min(100, me.focus + 3); gainExp(2); save();
     const [e2, n] = petLabel(info.sp, k);
-    toast(info.sp === 'c' && k === 'goguma' ? `${e2} ${info.name}: 냥… 고구마는 별로래요 🙄` : `${e2} ${info.name}에게 ${n}! 정신력 +3`);
+    toast(`${e2} ${info.name}${NG.stage.batchim(info.name) ? '이' : ''}랑 ${n}! 정신력 +3`);
     closeModal();
   });
 
@@ -852,6 +869,16 @@
     if (!s) return;
     const fx = s.fx;
     if (fx.music) { openWin('w-music'); return; }
+    if (id === 'bar') { // what you ordered decides the effect
+      const d = NG.DRINKS.find((x) => x.id === me.drink) || NG.DRINKS[0];
+      const parts = [];
+      if (d.k === 'coffee') { const n = d.id === 'espresso' ? 45 : 35; me.caffeine = Math.min(100, me.caffeine + n); tickGauges.warned = false; parts.push(`카페인 +${n}`); }
+      else if (d.k === 'soft') { me.focus = Math.min(100, me.focus + 15); parts.push('정신력 +15'); }
+      else { me.focus = Math.min(100, me.focus + 8); parts.push('정신력 +8 · 알딸딸 🥴'); }
+      gainExp(2); save(); renderHud();
+      toast(`${d.e} ${d.n} 한 잔 · ${parts.join(' · ')}`);
+      return;
+    }
     const now = Date.now();
     if (now - (spotCool[id] || 0) < 45000) { toast(fx.msg); return; }
     spotCool[id] = now;
@@ -984,7 +1011,7 @@
     { art: 'split', t: '작업하면서 옆에 띄워두세요', d: '브라우저 창을 <b>가로로 좁게</b> 줄여서 작업 화면 옆에 붙여두면 딱이에요. 좁은 창에서도 화면이 알아서 맞춰지고, ⤡ 버튼을 누르면 아지트와 채팅만 남는 미니 모드가 돼요.' },
     { art: '🛋️', t: '캐릭터는 알아서 놀아요', d: '들어온 사람마다 캐릭터가 생겨서 아지트를 돌아다니며 쉬어요. 모두 같은 화면을 함께 봐요. <b>가구를 누르면</b> 내 캐릭터가 거기로 가서 쉬고, <b>우클릭</b>(폰은 길게 누르기)한 뒤 끌어서 놓으면 인사·춤·점프 같은 행동을 해요.' },
     { art: '💬', t: '상태 · 수다 · 포스트잇', d: '"카페인이 필요함", "웃참중" 같은 상태를 머리 위에 띄우고, 투명 채팅창으로 수다 떨고, 📌 게시판에 포스트잇을 붙여요.' },
-    { art: '🎰', t: '코인 모아서 가챠', d: '다트와 미니게임으로 코인을 모아 <b>가챠샵</b>에서 게임·침착맨·아이돌 피규어를 뽑아요. 이제 이름을 정해볼까요?' },
+    { art: '🎰', t: '코인 넉넉히 가챠', d: '코인 300개로 시작하고, 쓰고 나면 2분 뒤 다시 300개로 채워져요. <b>가챠샵</b>에서 게임·침착맨·아이돌 피규어를 뽑아요. 이제 이름을 정해볼까요?' },
   ];
   function showTutorial(step = 0) {
     const s = TUT[step];
@@ -1002,8 +1029,23 @@
   }
   $('#set-tutorial').addEventListener('click', () => showTutorial(0));
 
+  const DRINK_KINDS = [['coffee', '☕ 커피'], ['soft', '🧃 논커피'], ['alcohol', '🍸 술']];
+  function openBar() {
+    modal(`<h3>☕ 재즈 바 메뉴</h3><p class="sub">한 잔 고르면 바에 앉아서 마셔요.</p>
+      ${DRINK_KINDS.map(([k, label]) => `<h4 class="bar-h">${label}</h4><div class="bar-menu">${NG.DRINKS.filter((d) => d.k === k).map((d) =>
+        `<button class="bar-item" data-drink="${d.id}"><span>${d.e}</span><b>${esc(d.n)}</b><small>${esc(d.d)}</small></button>`).join('')}</div>`).join('')}
+      <p class="sub">🔞 술은 아지트 안의 가상 한 잔이에요.</p><div class="row"><button class="btn" data-close>닫기</button></div>`, 'bar-modal');
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-drink]'); if (!b) return;
+    const d = NG.DRINKS.find((x) => x.id === b.dataset.drink); if (!d) return;
+    me.drink = d.id; save();
+    for (const a of ['drink:' + d.id, 'spot:bar']) { NG.stage.act(me.slot, a); NG.net.send({ type: 'act', slot: me.slot, a }); }
+    closeModal(); toast(`${d.e} ${d.n} 주문! 바로 가는 중…`);
+  });
   NG.stage.onAction = (a) => {
     if (me.slot == null) { askIdentity(); return; }
+    if (a === 'spot:bar') { openBar(); return; }
     if (a === 'dart') { NG.stage.startDart(); return; }
     if (a === 'sip') { drinkCoffee(); return; }
     NG.stage.act(me.slot, a);

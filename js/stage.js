@@ -22,25 +22,36 @@
     cream: '#ece4d2', ink: '#2e2724', metal: '#a29e96', metalDk: '#5f5c57', glow: '#f6d58e', fire: '#e0823f', fire2: '#f4c65a',
     outline: '#2b221e',
     sofa: '#7d5a48', sofaSeat: '#8c6652', sofaArm: '#6e4e3e', bean1: '#9c4a3f', bean2: '#5f7e85', cushion: '#5f7e85', rug: '#9c4a3f', rugDot: '#ece4d2', pat: 'lines',
+    // lights and furniture that change with the interior
+    lamp: 'cone', lamps: 2, lampCol: '#3e4440', glowRGB: '246,213,142', lampDrop: 0, floorLamp: false,
+    stove: '#4a4642', juke: '#76362f', stool: '#9c4a3f', panel: 'slat', tent: '#c4a57c', tentDk: '#a4845e', hammock: '#9c4a3f',
+    bulbs: ['#f6d58e', '#e8a0a0', '#a8c8e0', '#c8e0a0'], plantGap: 150,
   };
   // The interior shifts a little every 10 minutes (same for everyone: it follows the clock), with a short fade.
   const PAL0 = { ...PAL };
   const THEMES = [
     { n: '빈티지 재즈' },
     { n: '민트 카페', wall: '#c9d9cf', wallLine: '#b6c8bd', wood: '#a8876a', woodDk: '#7a5e48', woodLt: '#c4a585', beam: '#6a5444', floor: '#a39484', floorLine: '#8e8072', floorLt: '#b2a494', pat: 'stripe',
-      sofa: '#5f8a7a', sofaSeat: '#6f9a8a', sofaArm: '#4f7a6a', bean1: '#e0b04a', bean2: '#c77a96', cushion: '#e8c27a', rug: '#5f7e85', rugDot: '#f2ead8' },
+      sofa: '#5f8a7a', sofaSeat: '#6f9a8a', sofaArm: '#4f7a6a', bean1: '#e0b04a', bean2: '#c77a96', cushion: '#e8c27a', rug: '#5f7e85', rugDot: '#f2ead8',
+      lamp: 'globe', lamps: 3, lampCol: '#e8ecd8', glowRGB: '250,236,190', lampDrop: 14, stove: '#5f8a7a', juke: '#e0b04a', stool: '#5f8a7a', panel: 'plain', tent: '#e8dcc0', tentDk: '#c8b890', hammock: '#e0b04a', bulbs: ['#fff2c0', '#f2c4d8', '#c8f0e0'], plantGap: 110 },
     { n: '벽돌 라운지', wall: '#b88a74', wallLine: '#a0735f', wood: '#6a4e3c', woodDk: '#4a3428', woodLt: '#8a6a52', beam: '#3a2c24', floor: '#6e625a', floorLine: '#5c5048', floorLt: '#7c7068', pat: 'brick',
-      sofa: '#3f4a5e', sofaSeat: '#4a566c', sofaArm: '#323c4e', bean1: '#c09a4e', bean2: '#6f8a62', cushion: '#9c4a3f', rug: '#2f3a4a', rugDot: '#c09a4e' },
+      sofa: '#3f4a5e', sofaSeat: '#4a566c', sofaArm: '#323c4e', bean1: '#c09a4e', bean2: '#6f8a62', cushion: '#9c4a3f', rug: '#2f3a4a', rugDot: '#c09a4e',
+      lamp: 'bulb', lamps: 3, lampCol: '#2b2826', glowRGB: '255,196,120', lampDrop: -10, floorLamp: true, stove: '#2b2826', juke: '#3f4a5e', stool: '#2b2826', panel: 'tile', tent: '#6a7a5a', tentDk: '#4f5e42', hammock: '#c09a4e', bulbs: ['#ffc478', '#ffc478', '#ffe0a0'], plantGap: 190 },
     { n: '크림 체크', wall: '#e6dcc4', wallLine: '#d4c8ac', wood: '#9a7656', woodDk: '#6a4c38', woodLt: '#b89574', beam: '#56402f', pat: 'check',
-      sofa: '#c4825a', sofaSeat: '#d4926a', sofaArm: '#a86a48', bean1: '#5f7e85', bean2: '#9c4a3f', cushion: '#c77a96', rug: '#6f8a62', rugDot: '#ece4d2' },
+      sofa: '#c4825a', sofaSeat: '#d4926a', sofaArm: '#a86a48', bean1: '#5f7e85', bean2: '#9c4a3f', cushion: '#c77a96', rug: '#6f8a62', rugDot: '#ece4d2',
+      lamp: 'drum', lamps: 2, lampCol: '#c4825a', glowRGB: '250,222,170', lampDrop: 6, stove: '#8a4a3a', juke: '#6f8a62', stool: '#c4825a', panel: 'slat', tent: '#f2e8d4', tentDk: '#d8c8a8', hammock: '#6f8a62', plantGap: 130 },
     { n: '블루 나이트', wall: '#aab4c4', wallLine: '#98a2b4', wood: '#7a6250', woodDk: '#504034', woodLt: '#9a826c', beam: '#3a3440', floor: '#7a7680', floorLine: '#66626e', floorLt: '#888490',
-      sofa: '#9c4a3f', sofaSeat: '#ac5a4f', sofaArm: '#863a30', bean1: '#e0b04a', bean2: '#ece4d2', cushion: '#c09a4e', rug: '#414860', rugDot: '#f6d58e' },
+      sofa: '#9c4a3f', sofaSeat: '#ac5a4f', sofaArm: '#863a30', bean1: '#e0b04a', bean2: '#ece4d2', cushion: '#c09a4e', rug: '#414860', rugDot: '#f6d58e',
+      lamp: 'lantern', lamps: 3, lampCol: '#414860', glowRGB: '200,210,255', lampDrop: 0, floorLamp: true, stove: '#414860', juke: '#9c4a3f', stool: '#414860', panel: 'plain', tent: '#5f6e8a', tentDk: '#4a5670', hammock: '#e0b04a', bulbs: ['#c8d8ff', '#f6d58e', '#a8c8e0'], plantGap: 170 },
     { n: '테라코타', wall: '#d4a48a', wallLine: '#c49278', wood: '#7a5a44', woodDk: '#54402f', woodLt: '#9a7a5e', beam: '#46342a', floor: '#8e7c70', floorLine: '#7a6a5e', floorLt: '#9c8a7e', pat: 'dots',
-      sofa: '#6f8a62', sofaSeat: '#7f9a72', sofaArm: '#5f7a52', bean1: '#ece4d2', bean2: '#414860', cushion: '#ece4d2', rug: '#c09a4e', rugDot: '#76362f' },
+      sofa: '#6f8a62', sofaSeat: '#7f9a72', sofaArm: '#5f7a52', bean1: '#ece4d2', bean2: '#414860', cushion: '#ece4d2', rug: '#c09a4e', rugDot: '#76362f',
+      lamp: 'cone', lamps: 3, lampCol: '#c09a4e', glowRGB: '255,200,140', lampDrop: 10, stove: '#6a4030', juke: '#6f8a62', stool: '#6f8a62', panel: 'tile', tent: '#e8c090', tentDk: '#c89a68', hammock: '#ece4d2', bulbs: ['#ffd090', '#ff9a7a', '#f6d58e'], plantGap: 120 },
     { n: '세이지 숲', wall: '#b4c4a4', wallLine: '#a2b292', floor: '#857a6c', floorLine: '#716658', floorLt: '#93887a', pat: 'stripe',
-      sofa: '#d8d0be', sofaSeat: '#e6dece', sofaArm: '#c4bca8', bean1: '#9c4a3f', bean2: '#c09a4e', cushion: '#9c4a3f', rug: '#536b4b', rugDot: '#ece4d2' },
+      sofa: '#d8d0be', sofaSeat: '#e6dece', sofaArm: '#c4bca8', bean1: '#9c4a3f', bean2: '#c09a4e', cushion: '#9c4a3f', rug: '#536b4b', rugDot: '#ece4d2',
+      lamp: 'globe', lamps: 2, lampCol: '#d8d0be', glowRGB: '240,236,200', lampDrop: -6, floorLamp: true, stove: '#536b4b', juke: '#9c4a3f', stool: '#c09a4e', panel: 'slat', tent: '#8aa07a', tentDk: '#6e8460', hammock: '#d8d0be', bulbs: ['#e0f0c0', '#fff2c0', '#c8e0a0'], plantGap: 100 },
     { n: '라벤더 다락', wall: '#cbc2d8', wallLine: '#b8aec8', wood: '#b09a84', woodDk: '#7e6a58', woodLt: '#c8b49e', beam: '#5e5060', floor: '#a09aa4', floorLine: '#8c8690', floorLt: '#aea8b2', pat: 'dots',
-      sofa: '#6a5a8a', sofaSeat: '#7a6a9a', sofaArm: '#5a4a7a', bean1: '#f2c4d8', bean2: '#a8c8e0', cushion: '#f2c4d8', rug: '#8a6a9a', rugDot: '#f6e8f0' },
+      sofa: '#6a5a8a', sofaSeat: '#7a6a9a', sofaArm: '#5a4a7a', bean1: '#f2c4d8', bean2: '#a8c8e0', cushion: '#f2c4d8', rug: '#8a6a9a', rugDot: '#f6e8f0',
+      lamp: 'drum', lamps: 3, lampCol: '#f2c4d8', glowRGB: '255,220,240', lampDrop: 12, stove: '#7e6a58', juke: '#6a5a8a', stool: '#a8c8e0', panel: 'plain', tent: '#e8d8f0', tentDk: '#c8b4d8', hammock: '#a8c8e0', bulbs: ['#f2c4d8', '#c8d8ff', '#fff2c0'], plantGap: 140 },
   ];
   const THEME_MS = 600000;
   function themeAt(slot) { // a seeded shuffle per cycle, never the same theme twice in a row
@@ -619,9 +630,7 @@
     ['nap', '낮잠 자기', 'free', 'sleep', '', '💤'],
     ['eat', '사료 먹기', 'bowl', 'eat', '', '🍚'],
     ['stare', '츄르 달라고 쳐다보기', 'front', 'beg', '', '🥺'],
-    ['follow', '졸졸 따라다니기', 'follow', 'walk', '', '🐾'],
     ['belly', '배 보여주기', 'front', 'belly', '', '🥰'],
-    ['zoom', '우다다 달리기', 'zoom', 'run', '', '💨'],
     ['groom', '그루밍', 'free', 'groom', 'c', '✨'],
     ['stretch', '기지개 켜기', 'free', 'stretch', '', '🙆'],
     ['window', '창밖 구경', 'spot:window', 'sit', '', '👀'],
@@ -632,8 +641,6 @@
     ['lick', '핥아주기', 'pl', 'beg', 'd', '👅'],
     ['paw', '손!', 'front', 'beg', 'd', '🐾'],
     ['knead', '꾹꾹이', 'lap', 'knead', 'c', '🍞'],
-    ['play', '친구랑 장난치기', 'pet', 'wiggle', '', '⚡'],
-    ['cuddle', '친구랑 붙어 자기', 'petLie', 'sleep', '', '💞'],
     ['hunt', '사냥 자세 (엉덩이 씰룩)', 'free', 'hunt', 'c', '👁️'],
     ['music', '주크박스 음악 감상', 'spot:jukebox', 'sit', '', '🎵'],
     ['loaf', '식빵 굽기', 'free', 'loaf', 'c', '🍞'],
@@ -664,7 +671,7 @@
   const pets = PET_DEFS.map(([id, name, sp, breed, body, dark, light, ear, tail, pat, size], i) => ({
     id, i, name, sp, breed, body, dark, light, ear, tail, pat, size,
     x: 120 + i * 50, y: 0, mode: 'ground', pace: [1, 0.72, 1.18, 0.86, 1.3, 0.92, 0.66, 1.08, 0.8, 1.22][i], vy: 0, dir: i % 2 ? -1 : 1, walkT: 0, hop: null,
-    beh: null, slot: -1, target: null, fed: null, emoteT: 0, period: 24 + (i * 7) % 12, ofs: i * 5.3, nudge: 0, at: false,
+    beh: null, slot: -1, target: null, fed: null, emoteT: 0, period: 40 + (i * 13) % 27, ofs: i * 7.9, nudge: 0, at: false,
   }));
   const PS = 1.65; // pet sprite scale
   const petLevel = (p) => (p.x <= layout.loftX1 + 2 && p.y <= layout.loftY + 4 ? 1 : 0);
@@ -676,20 +683,33 @@
     const ids = chars.filter((c) => !c.gone).map((c) => c.id).sort();
     const others = pets.filter((o) => o !== p && o.beh);
     const toPerson = (x) => /^(pl|front|lap|head|follow)$/.test(x.tg);
-    let b = null, who = null;
-    for (let k = 0; k < allowed.length && !b; k++) {
+    const base = { other: pets[(p.i + 1 + ((h >>> 4) % 9)) % pets.length], r: ((h >>> 12) % 1000) / 1000, dir: (h >>> 20) & 1 ? 1 : -1 };
+    // Every pet does something different, and goes somewhere far from where the others are headed.
+    const SEP = Math.max(48, view.WW / 13);
+    const busy = new Set(others.map((o) => o.beh.b.k));
+    const people = others.filter((o) => toPerson(o.beh.b)).length;
+    let best = null;
+    const keep = p.beh;
+    for (let k = 0; k < allowed.length; k++) {
       const c = allowed[(h + k * 7) % allowed.length];
-      if (others.filter((o) => o.beh.b.k === c.k).length >= 2) continue; // no third pet on the same action
-      if (toPerson(c)) {
-        if (!ids.length) continue;
-        const w = ids[((h >>> 8) + k) % ids.length];
-        if (others.filter((o) => toPerson(o.beh.b) && o.beh.who === w).length >= 3) continue; // don't mob one person
-        who = w;
-      }
-      b = c;
+      if (busy.has(c.k)) continue;
+      if (toPerson(c) && (!ids.length || people >= 3)) continue; // a few pets with people at a time, the rest spread out
+      const who = toPerson(c) ? ids[((h >>> 8) + k) % ids.length] : null;
+      if (who && others.some((o) => toPerson(o.beh.b) && o.beh.who === who)) continue; // one pet per person
+      p.beh = { ...base, b: c, who };
+      let gx;
+      let gy;
+      try { const g = petGoal(p); gx = g.x; gy = g.perch ?? (g.lv === 1 ? layout.loftY : view.floor); } catch { gx = p.x; gy = p.y; }
+      const gap = Math.min(Infinity, ...others.map((o) => Math.hypot((o.goalX ?? o.x) - gx, ((o.goalY ?? o.y) - gy) * 1.4)));
+      const trip = Math.abs(gx - p.x), ok = gap >= SEP;
+      // first choice: far from the others and a short stroll away (less marching across the room)
+      const score = (ok ? 2000 : gap) - (ok ? Math.max(0, trip - 160) : 0);
+      if (!best || score > best.score) best = { b: c, who, gap, score };
+      if (ok && trip < 160) break;
     }
-    b = b || allowed.find((x) => x.k === 'nap');
-    return { b, who, other: pets[(p.i + 1 + ((h >>> 4) % 9)) % pets.length], r: ((h >>> 12) % 1000) / 1000, dir: (h >>> 20) & 1 ? 1 : -1 };
+    p.beh = keep;
+    if (!best) best = { b: allowed.find((x) => x.k === 'nap'), who: null };
+    return { ...base, b: best.b, who: best.who };
   }
   // Where the pet should be right now: x, the floor level it stands on, and a perch y when it sits on someone.
   function petGoal(p) {
@@ -762,12 +782,13 @@
     if (p.fed && performance.now() > p.fed.until) { p.fed = null; p.emote = '💖'; p.emoteT = 1.6; }
     if (p.emoteT > 0) p.emoteT -= dt;
     const goal = petGoal(p);
+    p.goalX = goal.x; p.goalY = goal.perch ?? (goal.lv === 1 ? layout.loftY : view.floor);
     const F = view.floor;
     // Keep a body's width from every other pet on the same floor (perched pets ride on people, so they're exempt).
     if (p.mode === 'ground' && goal.perch == null) {
       for (const o of pets) {
         if (o === p || o.mode === 'hop' || o.mode === 'climb' || Math.abs(o.y - p.y) > 8 || (o.mode === 'perch' && !(o.beh && o.beh.b.tg.startsWith('ledge:')))) continue;
-        const minD = (p.size + o.size) * 20, gx = goal.x + p.nudge, d = gx - o.x;
+        const minD = (p.size + o.size) * 24, gx = goal.x + p.nudge, d = gx - o.x;
         if (Math.abs(d) < minD) p.nudge += (d === 0 ? (p.i < o.i ? -1 : 1) : Math.sign(d)) * Math.min(minD - Math.abs(d), 40 * dt);
       }
       goal.x += p.nudge;
@@ -801,7 +822,9 @@
         if (Math.abs(d) < 3) { p.mode = 'climb'; p.climbTo = goal.lv; } else { p.x += Math.sign(d) * Math.min(Math.abs(d), speed * dt); p.dir = Math.sign(d); p.walkT += dt * 4.5; }
       } else {
         const d = goal.x - p.x;
-        if (Math.abs(d) > (p.moving ? 2 : 12)) { p.moving = true; p.x += Math.sign(d) * Math.min(Math.abs(d), speed * dt); p.dir = Math.sign(d); p.walkT += dt * (goal.run ? 7 : 4.5) * p.pace; }
+        const ahead = pets.find((o) => o !== p && o.moving && o.mode === 'ground' && Math.abs(o.y - p.y) < 8 && Math.sign(o.x - p.x) === Math.sign(d) && Math.abs(o.x - p.x) < 34 && o.dir === Math.sign(d));
+        if (ahead && Math.abs(d) > 12) { p.waitT = (p.waitT || 0) + dt; p.moving = false; } // let the one ahead get clear
+        else if (Math.abs(d) > (p.moving ? 2 : 12)) { p.moving = true; p.waitT = 0; p.x += Math.sign(d) * Math.min(Math.abs(d), speed * dt); p.dir = Math.sign(d); p.walkT += dt * (goal.run ? 7 : 4.5) * p.pace; }
         else if (goal.perch != null) { p.moving = false; p.mode = 'hop'; p.hop = { t: 0, x0: p.x, y0: p.y, y1: goal.perch }; }
         else {
           p.at = true; p.moving = false;
@@ -825,7 +848,7 @@
       const k = p.fed.kind;
       return k === 'pat' ? 'belly' : k === 'play' ? 'wiggle' : p.sp === 'c' && k === 'goguma' ? 'sit' : 'eat';
     }
-    if (!p.at) return petGoal(p).run ? 'run' : 'walk';
+    if (!p.at) return p.waitT > 0 ? 'sit' : petGoal(p).run ? 'run' : 'walk';
     return p.beh.b.pose;
   }
   function drawPet(p, t) {
@@ -1210,7 +1233,7 @@
     ctx.strokeStyle = PAL.ink; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(clx, cly); ctx.lineTo(clx + Math.sin(hA) * 6, cly - Math.cos(hA) * 6);
     ctx.moveTo(clx, cly); ctx.lineTo(clx + Math.sin(mA) * 9, cly - Math.cos(mA) * 9); ctx.stroke();
-    for (let x = 90, k = 0; x < W - 40; x += 150, k++) {
+    for (let x = 90, k = 0; x < W - 40; x += PAL.plantGap, k++) {
       const py = Math.min(F - 230, 40 + (k % 2) * 22);
       if (py < 24) continue;
       ctx.strokeStyle = PAL.woodDk; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, 9); ctx.lineTo(x, py); ctx.stroke();
@@ -1236,9 +1259,9 @@
     const sy = L.loftY - 96;
     for (let x = 0; x <= L.loftX1; x += 6) ctx.lineTo(x, sy + Math.sin((x / L.loftX1) * Math.PI * 3) * 6 + 6);
     ctx.stroke();
-    const bulbs = [PAL.glow, '#e8a0a0', '#a8c8e0', '#c8e0a0'];
+    const bulbs = PAL.bulbs;
     for (let x = 10, k = 0; x < L.loftX1; x += 20, k++) {
-      ctx.fillStyle = (Math.floor(t * 1.2) + k) % 3 === 0 ? '#6e665e' : bulbs[k % 4];
+      ctx.fillStyle = (Math.floor(t * 1.2) + k) % 3 === 0 ? '#6e665e' : bulbs[k % bulbs.length];
       ctx.fillRect(x - 1.5, sy + Math.sin((x / L.loftX1) * Math.PI * 3) * 6 + 7, 3, 4);
     }
     // floor
@@ -1253,8 +1276,8 @@
     // throw line
     box(L.line.x0, F + 3, L.line.x1 - L.line.x0, 2, 'rgba(236,228,210,.8)');
   }
-  const lampXs = () => [layout.barX0 + (layout.barX1 - layout.barX0) * 0.3, layout.barX0 + (layout.barX1 - layout.barX0) * 0.75];
-  const lampY = () => view.floor - 178;
+  const lampXs = () => (PAL.lamps === 3 ? [0.16, 0.5, 0.84] : [0.3, 0.75]).map((f) => layout.barX0 + (layout.barX1 - layout.barX0) * f);
+  const lampY = () => view.floor - 178 + PAL.lampDrop;
 
   // ---------- room: object layer (gets the pixel outline) ----------
   function drawProps(t, musicOn) {
@@ -1269,7 +1292,7 @@
     // stove
     const sx = L.stoveX;
     box(sx - 3, 9, 6, F - 52, PAL.metalDk);
-    rr(sx - 17, F - 50, 34, 44, 5); ctx.fillStyle = '#4a4642'; ctx.fill();
+    rr(sx - 17, F - 50, 34, 44, 5); ctx.fillStyle = PAL.stove; ctx.fill();
     box(sx - 15, F - 6, 4, 6, '#3a3734'); box(sx + 11, F - 6, 4, 6, '#3a3734');
     box(sx - 10, F - 36, 20, 16, '#2b2826');
     const fl = Math.sin(t * 13) * 2 + Math.sin(t * 7.3) * 1.5;
@@ -1293,9 +1316,9 @@
     ctx.fillStyle = PAL.bean2; ctx.beginPath(); ctx.ellipse(L.byId.manga.seats[1].x + 2, F - 7, 15, 9, 0, 0, 7); ctx.fill();
     // tent
     const tx = L.byId.tent.seats[0].x, ty = L.loftY;
-    ctx.fillStyle = '#c4a57c'; ctx.beginPath(); ctx.moveTo(tx - 32, ty); ctx.lineTo(tx, ty - 52); ctx.lineTo(tx + 32, ty); ctx.fill();
+    ctx.fillStyle = PAL.tent; ctx.beginPath(); ctx.moveTo(tx - 32, ty); ctx.lineTo(tx, ty - 52); ctx.lineTo(tx + 32, ty); ctx.fill();
     ctx.fillStyle = used('tent') ? '#e6c47a' : '#5a4636'; ctx.beginPath(); ctx.moveTo(tx - 11, ty); ctx.lineTo(tx, ty - 30); ctx.lineTo(tx + 11, ty); ctx.fill();
-    ctx.fillStyle = '#a4845e'; ctx.beginPath(); ctx.moveTo(tx, ty - 52); ctx.lineTo(tx + 32, ty); ctx.lineTo(tx + 20, ty); ctx.lineTo(tx - 2, ty - 40); ctx.fill();
+    ctx.fillStyle = PAL.tentDk; ctx.beginPath(); ctx.moveTo(tx, ty - 52); ctx.lineTo(tx + 32, ty); ctx.lineTo(tx + 20, ty); ctx.lineTo(tx - 2, ty - 40); ctx.fill();
     box(tx - 1, ty - 58, 2, 8, PAL.woodDk); ctx.fillStyle = PAL.red; ctx.beginPath(); ctx.moveTo(tx + 1, ty - 58); ctx.lineTo(tx + 9, ty - 55); ctx.lineTo(tx + 1, ty - 52); ctx.fill();
     // hammock
     const hx = L.byId.hammock.seats[0].x, hy = L.loftY;
@@ -1303,7 +1326,7 @@
     const sway = used('hammock') ? Math.sin(t * 1.4) * 2 : 0;
     ctx.strokeStyle = PAL.cream; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(hx - 38, hy - 46); ctx.lineTo(hx - 30, hy - 30 + sway); ctx.moveTo(hx + 38, hy - 46); ctx.lineTo(hx + 30, hy - 30 + sway); ctx.stroke();
-    ctx.fillStyle = PAL.red; ctx.beginPath(); ctx.moveTo(hx - 31, hy - 31 + sway);
+    ctx.fillStyle = PAL.hammock; ctx.beginPath(); ctx.moveTo(hx - 31, hy - 31 + sway);
     ctx.quadraticCurveTo(hx, hy - 12 + sway, hx + 31, hy - 31 + sway); ctx.quadraticCurveTo(hx, hy - 20 + sway, hx - 31, hy - 31 + sway); ctx.fill();
     ctx.strokeStyle = PAL.cream; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(hx - 28, hy - 28 + sway); ctx.quadraticCurveTo(hx, hy - 13 + sway, hx + 28, hy - 28 + sway); ctx.stroke();
     // figure shelf on the loft wall
@@ -1315,16 +1338,19 @@
     // bar counter + stools
     box(L.barX0, F - 46, L.barX1 - L.barX0, 6, PAL.woodLt);
     box(L.barX0 + 3, F - 40, L.barX1 - L.barX0 - 6, 40, PAL.wood);
-    ctx.fillStyle = PAL.woodDk; for (let x = L.barX0 + 10; x < L.barX1 - 6; x += 14) ctx.fillRect(x, F - 36, 1.5, 34);
+    ctx.fillStyle = PAL.woodDk;
+    if (PAL.panel === 'slat') for (let x = L.barX0 + 10; x < L.barX1 - 6; x += 14) ctx.fillRect(x, F - 36, 1.5, 34);
+    else if (PAL.panel === 'tile') { for (let y = F - 36; y < F; y += 9) ctx.fillRect(L.barX0 + 4, y, L.barX1 - L.barX0 - 8, 1.2); for (let x = L.barX0 + 12; x < L.barX1 - 6; x += 12) ctx.fillRect(x, F - 38, 1.2, 38); }
+    else { ctx.fillRect(L.barX0 + 3, F - 38, L.barX1 - L.barX0 - 6, 2); ctx.fillRect(L.barX0 + 3, F - 8, L.barX1 - L.barX0 - 6, 2); }
     box(L.barX0 + 6, F - 62, 18, 16, PAL.metal); box(L.barX0 + 9, F - 58, 12, 6, PAL.metalDk); box(L.barX0 + 13, F - 50, 3, 4, PAL.ink);
     box(L.barX1 - 22, F - 52, 7, 6, PAL.cream); box(L.barX1 - 12, F - 52, 7, 6, PAL.cream);
     for (const s of L.byId.bar.seats) {
       box(s.x - 2, F - 20, 3, 20, PAL.metalDk); box(s.x - 7, F - 2, 13, 2, PAL.metalDk);
-      rr(s.x - 9, F - 25, 17, 6, 2); ctx.fillStyle = PAL.red; ctx.fill();
+      rr(s.x - 9, F - 25, 17, 6, 2); ctx.fillStyle = PAL.stool; ctx.fill();
     }
     // jukebox
     const jx = L.jukeX;
-    rr(jx - 14, F - 58, 28, 58, 12); ctx.fillStyle = PAL.redDk; ctx.fill();
+    rr(jx - 14, F - 58, 28, 58, 12); ctx.fillStyle = PAL.juke; ctx.fill();
     rr(jx - 10, F - 52, 20, 20, 8); ctx.fillStyle = musicOn ? PAL.glow : '#c9b48a'; ctx.fill();
     for (let k = 0; k < 4; k++) box(jx - 9 + k * 5, F - 28, 3, 10, musicOn && (Math.floor(t * 6) + k) % 2 ? PAL.fire2 : PAL.mustard);
     box(jx - 12, F - 14, 24, 10, PAL.woodDk);
@@ -1376,7 +1402,22 @@
     box(s0 + 4, F - 4, 3, 4, PAL.ink); box(s1 - 7, F - 4, 3, 4, PAL.ink);
     rr(s0 + 10, F - 36, 13, 13, 3); ctx.fillStyle = PAL.mustard; ctx.fill();
     // pendant lamp shades
-    for (const lx of lampXs()) { ctx.fillStyle = '#3e4440'; ctx.beginPath(); ctx.moveTo(lx - 9, lampY() + 9); ctx.lineTo(lx - 4, lampY()); ctx.lineTo(lx + 4, lampY()); ctx.lineTo(lx + 9, lampY() + 9); ctx.fill(); box(lx - 3, lampY() + 9, 6, 3, PAL.glow); }
+    for (const lx of lampXs()) {
+      const ly = lampY();
+      ctx.fillStyle = PAL.lampCol;
+      switch (PAL.lamp) {
+        case 'globe': ctx.beginPath(); ctx.arc(lx, ly + 6, 7, 0, 7); ctx.fill(); box(lx - 3, ly + 8, 6, 4, PAL.glow); box(lx - 2, ly - 1, 4, 2, PAL.metalDk); break;
+        case 'drum': rr(lx - 10, ly, 20, 10, 2); ctx.fill(); box(lx - 7, ly + 10, 14, 2, PAL.glow); break;
+        case 'bulb': box(lx - 2, ly, 4, 3, PAL.metalDk); ctx.fillStyle = PAL.glow; ctx.beginPath(); ctx.arc(lx, ly + 7, 4, 0, 7); ctx.fill(); break;
+        case 'lantern': box(lx - 6, ly, 12, 2, PAL.lampCol); box(lx - 5, ly + 2, 10, 11, PAL.glow); box(lx - 6, ly + 2, 2, 11, PAL.lampCol); box(lx + 4, ly + 2, 2, 11, PAL.lampCol); box(lx - 6, ly + 13, 12, 2, PAL.lampCol); break;
+        default: ctx.beginPath(); ctx.moveTo(lx - 9, ly + 9); ctx.lineTo(lx - 4, ly); ctx.lineTo(lx + 4, ly); ctx.lineTo(lx + 9, ly + 9); ctx.fill(); box(lx - 3, ly + 9, 6, 3, PAL.glow);
+      }
+    }
+    if (PAL.floorLamp) { // standing lamp beside the sofa
+      const fx = layout.sofaX0 - 8, F = view.floor;
+      box(fx - 1, F - 70, 2, 70, PAL.metalDk); box(fx - 6, F - 2, 12, 2, PAL.metalDk);
+      ctx.fillStyle = PAL.lampCol; ctx.beginPath(); ctx.moveTo(fx - 9, F - 64); ctx.lineTo(fx - 5, F - 78); ctx.lineTo(fx + 5, F - 78); ctx.lineTo(fx + 9, F - 64); ctx.fill();
+    }
   }
 
   function drawFiguresShelf(t) {
@@ -1428,13 +1469,14 @@
     };
     const k = mood.night ? 1 : 0.55;
     ctx.globalCompositeOperation = 'lighter';
-    for (const lx of lampXs()) glow(lx, lampY() + 14, 70, 0.22 * k);
+    for (const lx of lampXs()) glow(lx, lampY() + 14, PAL.lamps === 3 ? 58 : 70, 0.22 * k, PAL.glowRGB);
+    if (PAL.floorLamp) glow(L.sofaX0 - 8, F - 66, 46, 0.2 * k, PAL.glowRGB);
     glow(L.stoveX, F - 26, 60 + Math.sin(t * 9) * 3, 0.3 * k, '240,140,70');
     if (occ.tent && occ.tent.some((v) => v != null)) glow(L.byId.tent.seats[0].x, L.loftY - 14, 34, 0.3 * k);
     if (musicOn) glow(L.jukeX, F - 40, 40, 0.22 * k, '240,180,120');
     const wx = weatherNow();
     if (wx.kind === 'storm' && wx.mix > 0.5) { const f = lightning(t); if (f > 0) { ctx.fillStyle = `rgba(220,226,255,${0.12 * f})`; ctx.fillRect(0, 0, view.WW, view.H); } }
-    for (let x = 10; x < L.loftX1; x += 40) glow(x, L.loftY - 88, 18, 0.12 * k);
+    for (let x = 10; x < L.loftX1; x += 40) glow(x, L.loftY - 88, 18, 0.12 * k, PAL.glowRGB);
     ctx.globalCompositeOperation = 'source-over';
   }
 

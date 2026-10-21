@@ -72,9 +72,9 @@
     toast,
     setNet(on, peers) {
       const p2p = NG.net && NG.net.mode === 'p2p';
-      const n = p2p ? (peers ?? NG.net.peers) : null;
+      const n = p2p ? Math.max(peers ?? NG.net.peers, NG.stage.people - 1) : null; // includes people reached through a relay
       $('#net').className = 'net ' + (on && (!p2p || n > 0) ? 'on' : 'off');
-      $('#net').title = p2p ? (n > 0 ? `팀원 ${n}명과 연결됨` : '혼자 있어요 · 팀원이 들어오면 자동 연결') : on ? '팀 서버 연결됨' : '연결 끊김 — 재연결 중';
+      $('#net').title = p2p ? (n > 0 ? `팀원 ${n}명과 함께 있어요` : '혼자 있어요 · 팀원이 들어오면 자동 연결') : on ? '팀 서버 연결됨' : '연결 끊김 — 재연결 중';
       $('#net-count').textContent = p2p && n > 0 ? `+${n}` : '';
       if ($('#w-settings').classList.contains('open')) renderSettings();
     },
@@ -206,8 +206,10 @@
     NG.stage.setPlayer(me.slot, me.name, me.status, me.look);
     NG.stage.setMe(me.slot);
     NG.stage.setPlayer(me.slot, me.name, me.status, me.look);
-    NG.net.send({ type: 'presence', slot: me.slot, name: me.name, status: me.status, look: me.look });
+    sendPresence();
   }
+  function sendPresence() { if (me.slot != null) NG.net.send({ type: 'presence', slot: me.slot, name: me.name, status: me.status, look: me.look }); }
+  setInterval(() => { if (NG.net.mode === 'p2p') sendPresence(); }, 30000);
   function renderStatus() {
     const box = $('#status-list');
     const all = [...NG.STATUS_PRESETS.map((s) => ({ ...s, preset: true })), ...me.custom];
@@ -859,8 +861,8 @@
     $('#id-name').onkeydown = (e) => { if (e.key === 'Enter') ok(); };
     if (first) setTimeout(() => $('#id-name').focus(), 50);
   }
-  NG.stage.onJoin = (id, name) => { if (Date.now() - bootAt > 3000) toast(`👋 ${name !== '손님' ? name + '님' : '누군가'}이 들어왔어요`); };
-  NG.stage.onLeave = (id, name) => toast(`🚪 ${name}님이 나갔어요`);
+  NG.stage.onJoin = (id, name) => { NG.ui.setNet(NG.net.online); if (Date.now() - bootAt > 3000) toast(`👋 ${name !== '손님' ? name + '님' : '누군가'}이 들어왔어요`); };
+  NG.stage.onLeave = (id, name) => { NG.ui.setNet(NG.net.online); toast(`🚪 ${name}님이 나갔어요`); };
   // ---------- rest spots & jukebox ----------
   const spotCool = {};
   NG.stage.onArrive = (slot, id, manual) => {
@@ -1104,11 +1106,18 @@
     } else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
     else if (m.type === 'act') {
       if (m.slot === me.slot) return;
+      if (m.a === 'whois') { if (Date.now() - (handle.whoisAt || 0) > 3000) { handle.whoisAt = Date.now(); sendPresence(); } return; }
       const pf = /^pf:(\d):(\w+)$/.exec(m.a);
       if (pf) NG.stage.feedPet(+pf[1], pf[2], m.slot);
       else if (m.a !== 'dart') NG.stage.act(m.slot, m.a);
     }
-    else if (m.type === 'pos') { if (m.slot !== me.slot) NG.stage.applyRemote(m.slot, m); }
+    else if (m.type === 'pos') {
+      if (m.slot === me.slot) return;
+      NG.stage.applyRemote(m.slot, m);
+      // someone we only reach through a relay and haven't been introduced to: ask everyone to say who they are
+      const known = shared.players[m.slot] && shared.players[m.slot].name;
+      if (!known && Date.now() - (handle.helloAt || 0) > 3000) { handle.helloAt = Date.now(); sendPresence(); NG.net.send({ type: 'act', slot: me.slot, a: 'whois' }); }
+    }
     else if (m.type === 'music') {
       const fresh = !shared.music || shared.music.vid !== m.vid || shared.music.startedAt !== m.startedAt;
       shared.music = m;

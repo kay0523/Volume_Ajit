@@ -2050,16 +2050,27 @@
   window.addEventListener('pointerup', () => { pan = null; });
 
   // ---------- loop ----------
-  let last = performance.now();
+  let last = performance.now(), simAt = performance.now();
+  // Characters and pets move in fixed small steps up to `now`. Browsers stop drawing hidden tabs, so a timer keeps
+  // this going there too; otherwise your character froze mid-ladder on everyone else's screen while you worked elsewhere.
+  function simulate(now) {
+    if (!layout) { simAt = now; return; }
+    let left = Math.min(3, (now - simAt) / 1000); simAt = now;
+    while (left > 0.0001) {
+      const dt = Math.min(0.05, left); left -= dt;
+      for (const c of chars) updateChar(c, dt);
+      for (const c of chars.filter((x) => x.gone)) { removeChar(c.id); if (NG.stage.onLeave) NG.stage.onLeave(c.id, c.name); }
+      for (const p of pets) updatePet(p, dt);
+      updateDart(dt);
+    }
+  }
+  setInterval(() => { if (document.hidden) simulate(performance.now()); }, 250);
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const t = now / 1000;
     if (!layout) { requestAnimationFrame(frame); return; }
-    for (const c of chars) updateChar(c, dt);
-    for (const p of pets) updatePet(p, dt);
+    simulate(performance.now());
     updateDecor(dt);
-    for (const c of chars.filter((x) => x.gone)) { removeChar(c.id); if (NG.stage.onLeave) NG.stage.onLeave(c.id, c.name); }
-    updateDart(dt);
     const mood = timeMood();
     const musicOn = !!(NG.music && (NG.music.playing || NG.music.shared));
     const { bw, bh, q } = view;
@@ -2286,6 +2297,7 @@
     say(id, text) { const c = getChar(id); if (c) { c.bubble = text; c.bubbleT = 6; } },
     emote(id, e) { const c = getChar(id); if (c) { c.emote = e; c.emoteT = 1.8; } },
     myPos() { const c = NG.app ? getChar(NG.app.me) : null; return c ? exportState(c) : null; },
+    get people() { return chars.filter((c) => !c.gone).length; },
     applyRemote, getChar, defaultLook,
     pets, PET_FOOD, PET_ACTS, feedPet, petAct, batchim, petInfo: (i) => petInfo(pets[i]),
     setMe(id) { return ensureChar(id); },

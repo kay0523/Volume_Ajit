@@ -95,6 +95,8 @@
 
   // ---------- P2P (no accounts): WebRTC between open pages, signalled over public Nostr relays (Trystero) ----------
   let p2p = null;
+  const seenIds = new Set();
+  const relaySeen = (id) => { if (seenIds.has(id)) return true; seenIds.add(id); if (seenIds.size > 4000) seenIds.delete(seenIds.values().next().value); return false; };
   const TEAM_KEY = 'nogari.team.v1';
   const teamCode = () => { try { return localStorage.getItem(TEAM_KEY) || 'volume'; } catch { return 'volume'; } };
   function startP2P() {
@@ -107,7 +109,19 @@
       const m = sanitize(raw); if (!m) return;
       accept(m);
     };
-    msg.onMessage = (m) => take(m);
+    // Gossip: every message carries an id and is passed on once by whoever gets it, so two people whose
+    // networks can't connect directly (no TURN server) still see each other through anyone in between.
+    msg.onMessage = (data, meta) => {
+      const from = meta && meta.peerId;
+      if (!data || typeof data !== 'object') return;
+      if (!data.mid || !data.m) { take(data); return; } // an older version sending bare messages
+      if (relaySeen(data.mid)) return;
+      take(data.m);
+      if (data.ttl > 0) {
+        const others = Object.keys(room.getPeers()).filter((id) => id !== from);
+        if (others.length) msg.send({ ...data, ttl: data.ttl - 1 }, { target: others }).catch(() => {});
+      }
+    };
     sync.onMessage = (st) => {
       if (!st || typeof st !== 'object') return;
       if (st.music) take({ ...st.music, type: 'music' });
@@ -242,7 +256,9 @@
       if (this.mode === 'p2p') {
         const c = sanitize(m); if (!c) return;
         accept(c);
-        p2p.msg.send(c).catch(() => {});
+        const mid = Math.random().toString(36).slice(2, 12);
+        relaySeen(mid);
+        p2p.msg.send({ mid, ttl: 3, m: c }).catch(() => {});
         return;
       }
       if (this.mode === 'claude') {

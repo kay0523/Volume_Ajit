@@ -4,7 +4,7 @@
   const canvas = document.getElementById('stage');
   const main = canvas.getContext('2d');
   const buf = document.createElement('canvas'), bctx = buf.getContext('2d');
-  const objL = document.createElement('canvas'), octx = objL.getContext('2d');
+  const objL = document.createElement('canvas'), octx = objL.getContext('2d', { willReadFrequently: true });
   const tint = document.createElement('canvas'), tctx = tint.getContext('2d');
   let ctx = bctx;
   let grid = null;
@@ -87,7 +87,7 @@
     view.s = Math.max(0.45, Math.min(wrap.height / 330, wrap.width / 300));
     const sFull = wrap.width / ROOM_W; // zoom out a little if that shows the whole room
     if (sFull < view.s && sFull >= wrap.height / 430) view.s = sFull;
-    view.P = Math.max(2, Math.round(view.s / 0.55));
+    view.P = Math.max(2, Math.round(view.s / 0.7)); // chunkier pixels
     view.q = view.s / view.P;
     view.bw = Math.ceil(wrap.width / view.P); view.bh = Math.ceil(wrap.height / view.P);
     for (const c of [buf, objL, tint]) { c.width = view.bw; c.height = view.bh; }
@@ -339,6 +339,7 @@
   function land(c) { c.ground = true; c.vy = 0; if (!c.steps.length) c.vx = 0; }
 
   function rr(x, y, w, h, r) {
+    r *= 0.45; // squarer corners for the blocky pixel look
     ctx.beginPath();
     ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
@@ -1888,14 +1889,20 @@
   });
 
   // ---------- pixel pipeline ----------
-  // Copy `layer` onto `dst` with a 1px dark outline around everything opaque in it.
+  // Copy `layer` onto `dst` with hard pixel edges and no outline: every pixel is either solid or gone, so
+  // smooth shapes come out as stepped, blocky pixel art. Dark see-through pixels (drop shadows) stay soft.
   function outlined(dst, layer, tl, w, h) {
-    tl.clearRect(0, 0, w, h);
-    tl.globalCompositeOperation = 'source-over'; tl.drawImage(layer, 0, 0);
-    tl.globalCompositeOperation = 'source-in'; tl.fillStyle = PAL.outline; tl.fillRect(0, 0, w, h);
-    tl.globalCompositeOperation = 'source-over';
-    dst.drawImage(tl.canvas, -1, 0); dst.drawImage(tl.canvas, 1, 0); dst.drawImage(tl.canvas, 0, -1); dst.drawImage(tl.canvas, 0, 1);
+    const g = layer.getContext('2d', { willReadFrequently: true });
+    const im = g.getImageData(0, 0, w, h), d = im.data;
+    for (let i = 3; i < d.length; i += 4) {
+      const a = d[i];
+      if (a === 255 || a === 0) continue;
+      if (a < 150 && a > 40 && d[i - 3] < 80 && d[i - 2] < 70 && d[i - 1] < 65) d[i] = 84; // shadow
+      else d[i] = a < 128 ? 0 : 255;
+    }
+    g.putImageData(im, 0, 0);
     dst.drawImage(layer, 0, 0);
+    void tl;
   }
   // Fade toward the DS-photo palette: less saturation, a warm grey cast.
   function grade(g, w, h, night) {

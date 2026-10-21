@@ -97,7 +97,7 @@
     const scx = (shopX0 + shopX1) / 2;
     const screen = { x0: scx - 62, x1: scx + 62, y0: F - 222, y1: F - 152 };
     const projector = { x: jukeX - 6, y: Math.max(26, F - 262) };
-    const machines = ['band', 'chim', 'idol'].map((key, k) => ({ key, x: shopX0 + 20 + k * 39, hit: { x0: shopX0 + 6 + k * 39, y0: F - 72, x1: shopX0 + 34 + k * 39, y1: F } }));
+    const machines = ['game', 'chim', 'idol'].map((key, k) => ({ key, x: shopX0 + 20 + k * 39, hit: { x0: shopX0 + 6 + k * 39, y0: F - 72, x1: shopX0 + 34 + k * 39, y1: F } }));
     layout = { screen, projector, board, line, loftY, loftX1, ladderX, barX0, barX1, jukeX, winX0, winX1, sofaX0, sofaX1, stoveX, spots, shelf, shopX0, shopX1, machines,
       byId: Object.fromEntries(spots.map((s) => [s.id, s])) };
   }
@@ -1447,6 +1447,28 @@
       case 'chicken': ctx.fillStyle = '#b8762e'; ctx.beginPath(); ctx.ellipse(13, -34, 6, 5, 0.4, 0, 7); ctx.fill(); box(16, -31, 6, 2, PAL.cream); break;
       case 'pillow': rr(-14, -38, 14, 10, 3); ctx.fillStyle = '#e9e9f2'; ctx.fill(); break;
       case 'coffee': box(10, -46, 8, 9, PAL.cream); box(11, -45, 6, 2, '#6b4630'); break;
+      case 'sword':
+        ctx.save(); ctx.translate(19, -24); ctx.rotate(0.35);
+        box(-1.5, -26, 3, 24, '#d8dce6'); box(-5, -3, 10, 2.5, PAL.mustard); box(-1, -1, 2, 6, PAL.woodDk); ctx.restore(); break;
+      case 'blaster': box(8, -34, 13, 5, '#5a5f6e'); box(18, -33, 5, 3, PAL.ink); box(10, -30, 3, 6, '#3a3f4a'); box(9, -34, 3, 2, PAL.red); break;
+      case 'wand': box(13, -48, 2, 20, PAL.woodDk); ctx.fillStyle = '#b48cff'; ctx.beginPath(); ctx.arc(14, -50, 3.5, 0, 7); ctx.fill(); break;
+      case 'mushroom':
+        ctx.fillStyle = PAL.red; ctx.beginPath(); ctx.ellipse(14, -38, 7, 5, 0, Math.PI, 0); ctx.fill();
+        box(8, -38, 12, 2, PAL.red); box(11, -37, 6, 6, PAL.cream); box(10, -42, 2, 2, PAL.cream); box(16, -41, 2, 2, PAL.cream); break;
+      case 'ball':
+        ctx.fillStyle = PAL.red; ctx.beginPath(); ctx.arc(14, -33, 5, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#f2f2ee'; ctx.beginPath(); ctx.arc(14, -33, 5, 0, Math.PI); ctx.fill();
+        box(9, -34, 10, 1.5, PAL.ink); box(13, -34.5, 2.5, 2.5, PAL.ink); break;
+      case 'wheel':
+        ctx.strokeStyle = PAL.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(13, -32, 6, 0, 7); ctx.stroke();
+        box(12, -32, 2, 6, PAL.ink); box(7, -33, 12, 2, PAL.ink); break;
+      case 'leaf':
+        ctx.fillStyle = PAL.green; ctx.beginPath(); ctx.ellipse(14, -36, 4, 7, 0.5, 0, 7); ctx.fill(); box(14, -31, 1.5, 6, PAL.woodDk); break;
+      case 'card': box(8, -40, 10, 14, PAL.cream); box(9, -39, 8, 12, PAL.red); box(11, -35, 4, 4, PAL.cream); break;
+      case 'pickaxe':
+        ctx.save(); ctx.translate(14, -30); ctx.rotate(-0.3);
+        box(-1, -20, 2.5, 22, PAL.woodLt); ctx.fillStyle = '#9aa0ac'; ctx.beginPath(); ctx.moveTo(-9, -16); ctx.quadraticCurveTo(0, -24, 9, -16); ctx.lineTo(0, -20); ctx.fill(); ctx.restore(); break;
+      case 'note': box(15, -46, 2, 14, PAL.ink); ctx.fillStyle = PAL.ink; ctx.beginPath(); ctx.ellipse(13, -32, 3.5, 2.5, -0.3, 0, 7); ctx.fill(); box(15, -46, 6, 3, PAL.ink); break;
       case 'crown':
         ctx.fillStyle = '#e8c24a'; ctx.beginPath(); ctx.moveTo(-10, -62); ctx.lineTo(-10, -70); ctx.lineTo(-5, -65); ctx.lineTo(0, -72);
         ctx.lineTo(5, -65); ctx.lineTo(10, -70); ctx.lineTo(10, -62); ctx.fill(); break;
@@ -1467,20 +1489,22 @@
       b.fillStyle = '#d9cfba'; b.fillRect(0, 0, bw, bh);
     } else {
       const g = b.createLinearGradient(0, 0, 0, bh);
-      g.addColorStop(0, opt.bg || '#e6dcc6'); g.addColorStop(1, '#cfc2a8');
+      g.addColorStop(0, item.bg || '#e6dcc6'); g.addColorStop(1, '#cfc2a8');
       b.fillStyle = g; b.fillRect(0, 0, bw, bh);
     }
     l.setTransform(k, 0, 0, k, 0, 0);
     const cx = bw / k / 2;
     const keep = ctx; ctx = l;
     try {
-      ctx.fillStyle = '#6e5442'; ctx.beginPath(); ctx.ellipse(cx, 86, 22, 6, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = '#8a6a50'; ctx.fillRect(cx - 22, 80, 44, 6); ctx.beginPath(); ctx.ellipse(cx, 80, 22, 6, 0, 0, 7); ctx.fill();
-      const fake = { d: item.look, i: 0, x: cx, y: 80, dir: 1, ground: true, vx: 0, walkT: 0, climbing: false, pose: null,
-        blinkT: 1, emoteT: 0, emote: null, status: null, throwT: 0, sit: false, anim: null, animT: 0 };
-      if (item.prop === 'mic' || item.prop === 'guitar' || item.prop === 'bass') fake.pose = null;
-      drawChar(fake, 0);
-      ctx.save(); ctx.translate(cx, 80); ctx.scale(CH, CH); drawProp(item.prop, 0); ctx.restore();
+      const bw2 = item.duo ? 34 : 22; // a guest stands beside the main figure on a wider base
+      ctx.fillStyle = '#6e5442'; ctx.beginPath(); ctx.ellipse(cx, 86, bw2, 6, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#8a6a50'; ctx.fillRect(cx - bw2, 80, bw2 * 2, 6); ctx.beginPath(); ctx.ellipse(cx, 80, bw2, 6, 0, 0, 7); ctx.fill();
+      const fig = (d, x, dir) => ({ d, i: 0, x, y: 80, dir, ground: true, vx: 0, walkT: 0, climbing: false, pose: null,
+        blinkT: 1, emoteT: 0, emote: null, status: null, throwT: 0, sit: false, anim: null, animT: 0 });
+      const mx = item.duo ? cx - 14 : cx;
+      if (item.duo) drawChar(fig(item.duo, cx + 15, -1), 0);
+      drawChar(fig(item.look, mx, 1), 0);
+      ctx.save(); ctx.translate(mx, 80); ctx.scale(CH, CH); drawProp(item.prop, 0); ctx.restore();
     } finally { ctx = keep; }
     if (opt.locked) { l.setTransform(1, 0, 0, 1, 0, 0); l.globalCompositeOperation = 'source-in'; l.fillStyle = '#8f8270'; l.fillRect(0, 0, bw, bh); l.globalCompositeOperation = 'source-over'; }
     l.setTransform(1, 0, 0, 1, 0, 0);

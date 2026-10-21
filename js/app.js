@@ -16,6 +16,7 @@
   if (typeof me.slot === 'number') me.slot = me.uid; // from the old three-seat version
   if (!me.listenV2) { me.listen = false; me.listenV2 = true; } // shared sound now starts off for everyone
   me.gacha = me.gacha || {}; me.holo = me.holo || {};
+  if (me.gacha.band) { me.coins += 15 * Object.keys(me.gacha.band).length; delete me.gacha.band; } // band machine became the game machine: refund
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch { /* blocked */ } };
 
   const shared = { players: {}, notes: [], music: null };
@@ -219,14 +220,14 @@
   $$('#emoji-pick button').forEach((b) => b.addEventListener('click', () => { $('#st-emoji').value = b.textContent; }));
 
   // ---------- figures (gacha collections) ----------
-  let figTab = 'band';
+  let figTab = 'game';
   function renderFigures() {
     $$('#fig-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === figTab));
     renderGachaInto($('#fig-gacha'), figTab);
   }
   $('#fig-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (b) { figTab = b.dataset.t; renderFigures(); } });
 
-  // ---------- gacha shop (band / 침착맨 / idol) ----------
+  // ---------- gacha shop (game / 침착맨 / idol) ----------
   const gItem = (key, id) => NG.GACHA[key].items.find((x) => x.id === id);
   function renderGachaInto(box, key) {
     const G = NG.GACHA[key];
@@ -239,12 +240,18 @@
       <div class="gcards">${G.items.map((it) => {
         const has = own[it.id];
         return `<button class="gcard ${has ? '' : 'locked'} ${me.holo[it.id] ? 'holo' : ''}" data-item="${it.id}" data-key="${key}" ${has ? '' : 'disabled'}>
-          <canvas></canvas><span>${has ? esc(it.n) : '???'}</span>${has && key === 'idol' ? `<small>${esc(it.g)}</small>` : ''}</button>`;
+          <canvas></canvas><span>${has ? esc(it.n) : '???'}</span>${has ? `<small>${esc(it.g)}</small>` : ''}</button>`;
       }).join('')}</div></div>`;
-    $$('.gcard', box).forEach((b) => {
+    // 200 cards per machine: draw each canvas only once it scrolls into view
+    const draw = (b) => {
+      if (b.dataset.drawn) return; b.dataset.drawn = 1;
       const it = gItem(key, b.dataset.item);
       NG.stage.drawFigure($('canvas', b), it, { locked: !own[it.id], holo: !!me.holo[it.id] });
-    });
+    };
+    const cards = $$('.gcard', box);
+    if (!('IntersectionObserver' in window)) { cards.forEach(draw); return; }
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { draw(e.target); io.unobserve(e.target); } }), { rootMargin: '200px' });
+    cards.forEach((b) => io.observe(b));
   }
   function showGachaItem(key, it, extra = '') {
     const r = NG.GACHA_RARITY[it.r];
@@ -941,7 +948,7 @@
     { art: 'split', t: '작업하면서 옆에 띄워두세요', d: '브라우저 창을 <b>가로로 좁게</b> 줄여서 작업 화면 옆에 붙여두면 딱이에요. 좁은 창에서도 화면이 알아서 맞춰지고, ⤡ 버튼을 누르면 아지트와 채팅만 남는 미니 모드가 돼요.' },
     { art: '🛋️', t: '캐릭터는 알아서 놀아요', d: '들어온 사람마다 캐릭터가 생겨서 아지트를 돌아다니며 쉬어요. 모두 같은 화면을 함께 봐요. <b>가구를 누르면</b> 내 캐릭터가 거기로 가서 쉬고, <b>우클릭</b>(폰은 길게 누르기)한 뒤 끌어서 놓으면 인사·춤·점프 같은 행동을 해요.' },
     { art: '💬', t: '상태 · 수다 · 포스트잇', d: '"카페인이 필요함", "웃참중" 같은 상태를 머리 위에 띄우고, 투명 채팅창으로 수다 떨고, 📌 게시판에 포스트잇을 붙여요.' },
-    { art: '🎰', t: '코인 모아서 가챠', d: '다트와 미니게임으로 코인을 모아 <b>가챠샵</b>에서 밴드·침착맨·아이돌 피규어를 뽑아요. 이제 이름을 정해볼까요?' },
+    { art: '🎰', t: '코인 모아서 가챠', d: '다트와 미니게임으로 코인을 모아 <b>가챠샵</b>에서 게임·침착맨·아이돌 피규어를 뽑아요. 이제 이름을 정해볼까요?' },
   ];
   function showTutorial(step = 0) {
     const s = TUT[step];

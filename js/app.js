@@ -5,6 +5,10 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'nogari.me.v1';
 
+  // Panels size from the height you can actually see (phone browsers count their toolbars in vh).
+  const fitHeight = () => document.documentElement.style.setProperty('--app-h', Math.round((window.visualViewport || window).height || innerHeight) + 'px');
+  fitHeight(); addEventListener('resize', fitHeight); if (window.visualViewport) visualViewport.addEventListener('resize', fitHeight);
+
   // ---------- persistent personal state ----------
   const def = { listen: false, slot: null, name: '', look: null, tutorial: false, gacha: {}, holo: {}, status: null, custom: [], coins: 60, figures: {}, shelf: true,
     caffeine: 80, focus: 90, exp: 0, lv: 1, best: { dart: 0 }, chatOpacity: 0.55, lastTick: Date.now() };

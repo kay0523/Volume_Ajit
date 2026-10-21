@@ -123,9 +123,9 @@
     const sp = (id, n, e, pose, seats, hit, fx, desc) => ({ id, n, e, pose, seats, hit, fx, desc });
     const stoveX = Math.max(30, W * 0.05);
     const spots = [
-      sp('stove', '난로 불멍', '🔥', 'warm', [{ x: stoveX + 34, y: F, dir: -1, level: 0 }],
-        { x0: stoveX - 22, y0: F - 70, x1: stoveX + 22, y1: F }, { focus: 15, msg: '🔥 타닥타닥… 불멍 중' }, '정신력 +15'),
-      sp('manga', '만화방', '📚', 'read', [{ x: W * 0.17, y: F - 2, dir: 1, level: 0 }, { x: W * 0.29, y: F - 2, dir: -1, level: 0 }],
+      sp('stove', '드럼통 불멍', '🔥', 'warm', [{ x: stoveX + 34, y: F, dir: -1, level: 0 }],
+        { x0: stoveX - 22, y0: F - 70, x1: stoveX + 22, y1: F }, { focus: 15, msg: '🔥 타닥타닥… 드럼통 불멍 중' }, '정신력 +15'),
+      sp('manga', '컨테이너 만화방', '📚', 'read', [{ x: W * 0.17, y: F - 2, dir: 1, level: 0 }, { x: W * 0.29, y: F - 2, dir: -1, level: 0 }],
         { x0: W * 0.13, y0: F - 112, x1: W * 0.33, y1: F }, { focus: 10, exp: 4, msg: '📚 만화책 정주행 중' }, '정신력 +10 · EXP'),
       sp('tent', '텐트 낮잠', '⛺', 'tent', [{ x: W * 0.09, y: loftY, dir: 1, level: 1 }],
         { x0: W * 0.09 - 30, y0: loftY - 56, x1: W * 0.09 + 30, y1: loftY }, { focus: 30, msg: '⛺ 텐트에서 꿀잠' }, '정신력 +30'),
@@ -135,8 +135,8 @@
         { x0: barX0, y0: F - 62, x1: barX1, y1: F }, { caffeine: 35, msg: '☕ 핸드드립 한 잔' }, '카페인 +35'),
       sp('jukebox', '주크박스', '🎷', 'listen', [{ x: jukeX + 22, y: F, dir: -1, level: 0 }],
         { x0: jukeX - 15, y0: F - 60, x1: jukeX + 15, y1: F }, { music: true, focus: 5, msg: '🎷 재즈 한 곡' }, '재즈 켜기/끄기'),
-      sp('window', '창가 자리', '🌧️', 'zone', [{ x: (winX0 + winX1) / 2, y: F - 18, dir: -1, level: 0 }],
-        { x0: winX0, y0: F - 126, x1: winX1, y1: F }, { focus: 15, msg: '🌧️ 창밖 보며 멍…' }, '정신력 +15'),
+      sp('window', '전망 벤치', '☁️', 'zone', [{ x: (winX0 + winX1) / 2, y: F - 18, dir: -1, level: 0 }],
+        { x0: winX0, y0: F - 126, x1: winX1, y1: F }, { focus: 15, msg: '☁️ 하늘 보며 멍…' }, '정신력 +15'),
       sp('gacha', '가챠샵', '🎰', 'crank', [0, 1, 2].map((k) => ({ x: shopX0 + 20 + k * 39 - 13, y: F, dir: 1, level: 0 })),
         { x0: shopX0, y0: F - 92, x1: shopX1, y1: F }, { msg: '🎰 가챠 구경 중' }, '피규어 뽑기'),
       sp('sofa', '소파', '🛋️', 'sit', [{ x: sofaX0 + 24, y: F - 15, dir: 1, level: 0 }, { x: sofaX1 - 24, y: F - 15, dir: -1, level: 0 }],
@@ -147,7 +147,7 @@
     // Pull-down projector screen above the gacha shop (16:9) and a ceiling projector over the jukebox.
     const scx = (shopX0 + shopX1) / 2;
     const screen = { x0: scx - 62, x1: scx + 62, y0: F - 222, y1: F - 152 };
-    const projector = { x: jukeX - 6, y: Math.max(26, F - 262) };
+    const projector = { x: jukeX - 6, y: F - 196 };
     const machines = ['game', 'chim', 'idol'].map((key, k) => ({ key, x: shopX0 + 20 + k * 39, hit: { x0: shopX0 + 6 + k * 39, y0: F - 72, x1: shopX0 + 34 + k * 39, y1: F } }));
     layout = { screen, projector, board, line, loftY, loftX1, ladderX, barX0, barX1, jukeX, winX0, winX1, sofaX0, sofaX1, stoveX, spots, shelf, shopX0, shopX1, machines,
       byId: Object.fromEntries(spots.map((s) => [s.id, s])) };
@@ -634,8 +634,8 @@
     ['belly', '배 보여주기', 'front', 'belly', '', '🥰'],
     ['groom', '그루밍', 'free', 'groom', 'c', '✨'],
     ['stretch', '기지개 켜기', 'free', 'stretch', '', '🙆'],
-    ['window', '창밖 구경', 'spot:window', 'sit', '', '👀'],
-    ['stove', '난로 앞에서 몸 녹이기', 'spot:stove', 'loaf', '', '🔥'],
+    ['window', '하늘 구경', 'spot:window', 'sit', '', '👀'],
+    ['stove', '드럼통 불 앞에서 몸 녹이기', 'spot:stove', 'loaf', '', '🔥'],
     ['sofa', '소파 차지하기', 'sofa', 'sleep', '', '😌'],
     ['talk', '말 걸기', 'front', 'sit', '', '💬'],
     ['sniff', '킁킁 냄새 맡기', 'pl', 'eat', '', '👃'],
@@ -656,14 +656,14 @@
     ['box', '상자에 쏙 들어가기', 'free', 'box', 'c', '📦'],
     ['gacha', '가챠 구경', 'spot:gacha', 'sit', '', '🎰'],
     ['barTop', '바 위에서 식빵 굽기', 'ledge:bar', 'loaf', '', '☕'],
-    ['sill', '창틀에 올라 바깥 구경', 'ledge:sill', 'sit', 'c', '🪟'],
+    ['sill', '고장 난 TV 위에서 구경', 'ledge:sill', 'sit', 'c', '📺'],
     ['shelf', '만화방 책장 위에서 낮잠', 'ledge:shelf', 'sleep', 'c', '📚'],
     ['machine', '가챠 기계 위에 앉기', 'ledge:machine', 'sit', '', '🎰'],
     ['awning', '가챠샵 차양 위에서 망보기', 'ledge:awning', 'loaf', 'c', '⛱️'],
     ['juke', '주크박스 위에서 음악 듣기', 'ledge:juke', 'loaf', '', '🎶'],
     ['sofaBack', '소파 등받이 위에서 뒹굴', 'ledge:sofaBack', 'belly', 'c', '🛋️'],
     ['bean', '빈백에 파묻히기', 'ledge:bean', 'sleep', '', '😪'],
-    ['seat', '창가 쿠션 차지하기', 'ledge:seat', 'loaf', '', '🌤️'],
+    ['seat', '전망 벤치 차지하기', 'ledge:seat', 'loaf', '', '🌤️'],
   ].map(([k, n, tg, pose, sp, e]) => ({ k, n, tg, pose, sp, e }));
   const PET_FOOD = {
     kibble: { n: '사료', e: '🥣', at: 'bowl' }, churu: { n: '츄르', e: '🍡', at: 'hand' }, goguma: { n: '고구마', e: '🍠', at: 'hand' },
@@ -759,7 +759,7 @@
     const L = layout, F = view.floor, m = L.byId.manga.hit;
     switch (id) {
       case 'bar': return { x0: L.barX0 + 30, x1: L.barX1 - 26, y: F - 46 };
-      case 'sill': return { x0: L.winX0 + 10, x1: L.winX1 - 10, y: F - 57 };
+      case 'sill': return { x0: L.winX0 + 10, x1: L.winX1 - 10, y: F - 62 };
       case 'shelf': return { x0: m.x0 + 8, x1: m.x1 - 8, y: F - 92 };
       case 'machine': return { pts: L.machines.map((x) => x.x), y: F - 68 };
       case 'awning': return { x0: L.shopX0 + 10, x1: L.shopX1 - 10, y: F - 112 };
@@ -824,7 +824,9 @@
       } else {
         const d = goal.x - p.x;
         const ahead = pets.find((o) => o !== p && o.moving && o.mode === 'ground' && Math.abs(o.y - p.y) < 8 && Math.sign(o.x - p.x) === Math.sign(d) && Math.abs(o.x - p.x) < 34 && o.dir === Math.sign(d));
-        if (ahead && Math.abs(d) > 12) { p.waitT = (p.waitT || 0) + dt; p.moving = false; } // let the one ahead get clear
+        const nowMs = performance.now();
+        if (ahead && Math.abs(d) > 12 && nowMs > (p.waitCool || 0)) { p.waitUntil = nowMs + 2200; p.waitCool = nowMs + 9000; } // let the one ahead get clear
+        if (nowMs < (p.waitUntil || 0)) { p.waitT = 1; p.moving = false; }
         else if (Math.abs(d) > (p.moving ? 2 : 12)) { p.moving = true; p.waitT = 0; p.x += Math.sign(d) * Math.min(Math.abs(d), speed * dt); p.dir = Math.sign(d); p.walkT += dt * (goal.run ? 7 : 4.5) * p.pace; }
         else if (goal.perch != null) { p.moving = false; p.mode = 'hop'; p.hop = { t: 0, x0: p.x, y0: p.y, y1: goal.perch }; }
         else {
@@ -1084,10 +1086,10 @@
   // ---------- room: background layer (no outline) ----------
   function timeMood() {
     const h = new Date().getHours() + new Date().getMinutes() / 60;
-    if (h < 6 || h >= 19.5) return { sky: ['#2e3452', '#46507a'], night: true };
-    if (h < 8.5) return { sky: ['#c9b6a6', '#e2d6c6'], night: false };
-    if (h >= 17) return { sky: ['#b98f7c', '#dcb79a'], night: false };
-    return { sky: ['#a9bccb', '#d4dde2'], night: false };
+    if (h < 6 || h >= 19.5) return { phase: 'night', night: true };
+    if (h < 8.5) return { phase: 'morning', night: false };
+    if (h >= 17) return { phase: 'dusk', night: false };
+    return { phase: 'day', night: false };
   }
   // ---------- weather outside the windows: changes every 3 minutes, picked from the clock so everyone shares it ----------
   const WEATHER_MS = 180000, BLEND_MS = 8000;
@@ -1168,93 +1170,94 @@
     ctx.restore();
   }
 
-  function windowAt(x0, y0, w, h, t, mood) {
-    box(x0 - 4, y0 - 4, w + 8, h + 8, PAL.woodDk);
-    const g = ctx.createLinearGradient(0, y0, 0, y0 + h);
-    g.addColorStop(0, mood.sky[0]); g.addColorStop(1, mood.sky[1]);
-    ctx.fillStyle = g; ctx.fillRect(x0, y0, w, h);
-    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
-    const wx = weatherNow();
-    // sky-level effects behind the skyline, precipitation in front
-    weatherLayer(wx.prev, x0, y0, w, h, t, mood, 1 - wx.mix);
-    weatherLayer(wx.kind, x0, y0, w, h, t, mood, wx.mix);
-    ctx.restore();
-    ctx.fillStyle = mood.night ? '#262a40' : '#8d97a3';
-    for (let i = 0; i < w; i += 9) { const bh = 10 + ((i * 37) % 23); ctx.fillRect(x0 + i, y0 + h - bh, 8, bh); }
-    if (wx.kind === 'snow' && wx.mix > 0.5) { ctx.fillStyle = '#eef0f4'; for (let i = 0; i < w; i += 9) { const bh = 10 + ((i * 37) % 23); ctx.fillRect(x0 + i, y0 + h - bh, 8, 2); } }
-    if (mood.night) { ctx.fillStyle = '#e8cf8a'; for (let i = 3; i < w; i += 9) if ((i * 7) % 3 === 0) ctx.fillRect(x0 + i, y0 + h - 8, 2, 2); }
-    box(x0 + w / 2 - 1.5, y0, 3, h, PAL.woodDk); box(x0, y0 + h / 2 - 1.5, w, 3, PAL.woodDk);
-    box(x0 - 6, y0 + h + 2, w + 12, 5, PAL.wood);
+  // ---------- outdoor scene: post-apocalyptic open-air bar ----------
+  const hex2 = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const mix = (a, b, k) => { const A = hex2(a), B = hex2(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
+  const rnd = (i, k) => (hashN('s' + i + ':' + k) % 1000) / 1000;
+  // Stair-stepped pixel disc (rows of rects on a coarse grid, so edges read as pixel steps).
+  function blob(cx, cy, r, col, st = 2) {
+    ctx.fillStyle = col;
+    for (let y = -r; y < r; y += st) {
+      const w = Math.sqrt(Math.max(0, r * r - (y + st / 2) * (y + st / 2)));
+      const x0 = Math.round((cx - w) / st) * st, x1 = Math.round((cx + w) / st) * st;
+      if (x1 > x0) ctx.fillRect(x0, Math.round((cy + y) / st) * st, x1 - x0, st + 0.3);
+    }
   }
-
+  const SKY = {
+    day: ['#5fb4e4', '#cdeef4'], morning: ['#8fb8e0', '#f6dcc4'], dusk: ['#6a6aa8', '#f2a878'], night: ['#141c38', '#34406e'],
+    rain: ['#2e6a78', '#7ab8bc'], storm: ['#1e3a4a', '#4a7a84'], cloudy: ['#8aa4b4', '#c8d8de'], snow: ['#a8b8c8', '#e4ecf0'], fog: ['#c8d0d0', '#e8ecea'],
+  };
+  function skyColors(mood) {
+    const base = SKY[mood.phase] || SKY.day, wx = weatherNow();
+    const tgt = (k) => (SKY[k] ? SKY[k].map((c) => (mood.night ? mix(c, '#101830', 0.55) : c)) : base);
+    const a = tgt(wx.prev), b = tgt(wx.kind);
+    return [0, 1].map((i) => mix(mix(base[i], a[i], SKY[wx.prev] ? 1 : 0), b[i], wx.mix));
+  }
   function drawRoom(t, mood) {
-    const W = view.WW, H = view.H, F = view.floor;
-    const L = layout;
-    box(0, 0, W, F, PAL.wall);
-    ctx.fillStyle = PAL.wallLine;
-    if (PAL.pat === 'stripe') for (let x = 0; x < W; x += 28) ctx.fillRect(x, 0, 12, F);
-    else if (PAL.pat === 'brick') for (let y = 12, r = 0; y < F; y += 11, r++) { ctx.fillRect(0, y, W, 1.5); for (let x = (r % 2) * 13; x < W; x += 26) ctx.fillRect(x, y - 11, 1.5, 11); }
-    else if (PAL.pat === 'dots') for (let y = 18, r = 0; y < F; y += 16, r++) for (let x = (r % 2) * 9; x < W; x += 18) ctx.fillRect(x, y, 2.5, 2.5);
-    else if (PAL.pat === 'check') { for (let x = 0; x < W; x += 24) ctx.fillRect(x, 0, 2, F); for (let y = 0; y < F; y += 24) ctx.fillRect(0, y, W, 2); }
-    else for (let x = 8; x < W; x += 18) ctx.fillRect(x, 0, 1.5, F);
-    // ceiling beams
-    box(0, 0, W, 9, PAL.beam);
-    for (let x = 30; x < W; x += 120) box(x, 9, 8, 6, PAL.woodDk);
-    // wainscot
-    box(0, F - 42, W, 42, PAL.wood);
-    box(0, F - 44, W, 4, PAL.woodDk);
-    ctx.fillStyle = PAL.woodDk; for (let x = 12; x < W; x += 26) ctx.fillRect(x, F - 40, 1.5, 40);
-    // windows
-    windowAt(L.barX0 + 12, F - 216, L.barX1 - L.barX0 - 24, 50, t, mood);
-    windowAt(L.winX0 + 4, F - 120, L.winX1 - L.winX0 - 8, 62, t, mood);
-    // bar back shelves
-    box(L.barX0 + 2, F - 104, L.barX1 - L.barX0 - 4, 4, PAL.woodDk);
-    box(L.barX0 + 2, F - 82, L.barX1 - L.barX0 - 4, 4, PAL.woodDk);
-    const bottles = [PAL.greenDk, PAL.red, PAL.mustard, PAL.teal, PAL.cream, PAL.navy];
-    for (let x = L.barX0 + 8, k = 0; x < L.barX1 - 10; x += 9, k++) {
-      const h = 10 + (k * 5) % 6;
-      box(x, F - 104 - h, 6, h, bottles[k % bottles.length]); box(x + 2, F - 108 - h, 2, 4, bottles[k % bottles.length]);
-      if (k % 2 === 0) box(x, F - 92, 7, 10, '#e9e1cf');
+    const W = view.WW, H = view.H, F = view.floor, L = layout;
+    const wx = weatherNow(), wet = (wx.kind === 'rain' || wx.kind === 'storm') ? wx.mix : 0;
+    const [top, hor] = skyColors(mood);
+    // sky in flat bands
+    const bands = 9, skyH = F - 20;
+    for (let i = 0; i < bands; i++) box(0, (skyH * i) / bands, W, skyH / bands + 1, mix(top, hor, i / (bands - 1)));
+    // sun or moon (hidden behind rain clouds), stars at night
+    const clearSky = 1 - Math.max(wet, wx.kind === 'fog' || wx.kind === 'cloudy' ? wx.mix * 0.7 : 0);
+    if (mood.night) {
+      for (let i = 0; i < 60; i++) if ((Math.floor(t * 0.7 + i) % 7) && rnd(i, 1) < 0.9) box(rnd(i, 2) * W, rnd(i, 3) * F * 0.55, 1.5, 1.5, `rgba(255,250,230,${0.7 * clearSky})`);
     }
-    // sign over the bar
-    // (pixel text is drawn in drawPixelText after the scale-up layer)
-    // pendant lamp cords
-    ctx.fillStyle = PAL.ink;
-    for (const lx of lampXs()) ctx.fillRect(lx - 0.5, 9, 1, lampY() - 9);
-    // poster & record on the right wall
-    const px = L.winX1 + 10;
-    if (L.sofaX0 - px > 26) { box(px, F - 178, 24, 32, PAL.navy); box(px + 3, F - 175, 18, 18, PAL.mustard); box(px + 3, F - 154, 18, 3, PAL.cream); }
-    ctx.fillStyle = PAL.ink; ctx.beginPath(); ctx.arc(L.barX1 + 24, F - 150, 11, 0, 7); ctx.fill();
-    ctx.fillStyle = PAL.red; ctx.beginPath(); ctx.arc(L.barX1 + 24, F - 150, 4, 0, 7); ctx.fill();
-    // upper wall: clock, hanging plants and, on tall screens, bunting and a sign
-    const clx = (L.winX0 + L.winX1) / 2, cly = F - 168;
-    ctx.fillStyle = PAL.woodDk; ctx.beginPath(); ctx.arc(clx, cly, 15, 0, 7); ctx.fill();
-    ctx.fillStyle = PAL.cream; ctx.beginPath(); ctx.arc(clx, cly, 12, 0, 7); ctx.fill();
-    const now = new Date(), hA = ((now.getHours() % 12) + now.getMinutes() / 60) / 12 * Math.PI * 2, mA = now.getMinutes() / 60 * Math.PI * 2;
-    ctx.strokeStyle = PAL.ink; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(clx, cly); ctx.lineTo(clx + Math.sin(hA) * 6, cly - Math.cos(hA) * 6);
-    ctx.moveTo(clx, cly); ctx.lineTo(clx + Math.sin(mA) * 9, cly - Math.cos(mA) * 9); ctx.stroke();
-    for (let x = 90, k = 0; x < W - 40; x += PAL.plantGap, k++) {
-      const py = Math.min(F - 230, 40 + (k % 2) * 22);
-      if (py < 24) continue;
-      ctx.strokeStyle = PAL.woodDk; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, 9); ctx.lineTo(x, py); ctx.stroke();
-      box(x - 7, py, 14, 10, PAL.redDk);
-      ctx.fillStyle = PAL.green;
-      for (let v = 0; v < 4; v++) { ctx.fillRect(x - 8 + v * 5, py + 8, 2, 8 + ((v * 7 + k) % 9)); }
-      ctx.fillStyle = PAL.greenDk; ctx.beginPath(); ctx.ellipse(x, py, 10, 5, 0, Math.PI, 0); ctx.fill();
+    if (clearSky > 0.2) {
+      const sx = W * 0.8, sy = F * 0.16;
+      ctx.globalAlpha = clearSky;
+      blob(sx, sy, 16, mix(hor, mood.night ? '#d8dcf0' : '#fff6d8', 0.35));
+      blob(sx, sy, 10, mood.night ? '#eef0ff' : '#fff8e0');
+      ctx.globalAlpha = 1;
     }
-    if (F - 300 > 30) {
-      const by = F - 300;
-      ctx.strokeStyle = PAL.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, by); ctx.quadraticCurveTo(W / 2, by + 26, W, by); ctx.stroke();
-      const flags = [PAL.red, PAL.mustard, PAL.teal, PAL.cream, PAL.green];
-      for (let x = 8, k = 0; x < W; x += 22, k++) {
-        const yy = by + Math.sin((x / W) * Math.PI) * 13;
-        ctx.fillStyle = flags[k % flags.length]; ctx.beginPath(); ctx.moveTo(x - 6, yy); ctx.lineTo(x + 6, yy); ctx.lineTo(x, yy + 11); ctx.fill();
-      }
+    // drifting clouds
+    const cloudCol = wet ? ['#86b4b8', '#5e8e96'] : mood.night ? ['#4a5a88', '#36446e'] : mood.phase === 'dusk' ? ['#f6d8c8', '#d8a0a0'] : ['#ffffff', '#cfe6f2'];
+    for (let i = 0; i < 7; i++) {
+      const cx = (((rnd(i, 4) + t * 0.0035 * (0.6 + rnd(i, 5))) % 1.3) - 0.15) * W, cy = 22 + rnd(i, 6) * F * 0.32, s = 0.7 + rnd(i, 7) * 0.8;
+      for (const [dx, dy, r] of [[-22, 4, 12], [0, -4, 18], [20, 2, 14], [36, 6, 9], [-34, 8, 7]]) blob(cx + dx * s, cy + dy * s + 4, r * s, cloudCol[1]);
+      for (const [dx, dy, r] of [[-22, 2, 12], [0, -6, 17], [20, 0, 13], [36, 4, 8], [-34, 6, 6]]) blob(cx + dx * s, cy + dy * s, r * s, cloudCol[0]);
     }
-    // under-loft nook is darker
-    ctx.fillStyle = 'rgba(60,45,35,.16)'; ctx.fillRect(0, L.loftY, L.loftX1, F - L.loftY);
-    // string lights over the loft
+    // ruined skyline, overgrown
+    const far = mix(hor, mood.night ? '#1a2238' : '#4a6474', 0.5), farDk = mix(far, '#20283a', 0.3), moss = mix(far, '#4f8a4a', 0.45);
+    for (let x = -10, i = 0; x < W + 20; i++) {
+      const bw = 18 + rnd(i, 8) * 34, bh = 30 + rnd(i, 9) * 120, y = F - 26 - bh;
+      box(x, y, bw, bh + 26, rnd(i, 10) < 0.5 ? far : farDk);
+      for (let k = 0; k < 3; k++) if (rnd(i, 11 + k) < 0.7) box(x + rnd(i, 14 + k) * bw * 0.8, y - 4 - rnd(i, 17 + k) * 8, 4 + rnd(i, 20 + k) * 6, 6 + rnd(i, 23 + k) * 8, rnd(i, 10) < 0.5 ? far : farDk); // broken top
+      for (let wy = y + 8; wy < F - 34; wy += 9) for (let wx2 = x + 4; wx2 < x + bw - 4; wx2 += 7) if (rnd(i * 31 + wx2, wy) < 0.55) box(wx2, wy, 3, 4, mood.night && rnd(wx2, wy) < 0.06 ? '#e8c87a' : mix(farDk, '#101420', 0.35));
+      if (rnd(i, 26) < 0.6) { blob(x + bw * rnd(i, 27), y + 2, 6 + rnd(i, 28) * 6, moss); for (let v = 0; v < 3; v++) box(x + 2 + rnd(i, 29 + v) * (bw - 4), y + 2, 2, 10 + rnd(i, 32 + v) * 24, moss); }
+      x += bw + 4 + rnd(i, 35) * 16;
+    }
+    // trees and bushes along the horizon
+    const tree = mood.night ? ['#1c3428', '#284636'] : ['#2f5a3a', '#4c8a4c'], leaf = mood.night ? '#3a5e44' : '#7ab45a';
+    for (let i = 0; i < Math.ceil(W / 60); i++) {
+      const tx = i * 60 + rnd(i, 40) * 40, ty = F - 34 - rnd(i, 41) * 30, r = 14 + rnd(i, 42) * 14;
+      box(tx - 2, ty, 5, F - ty, mood.night ? '#2a2420' : '#5a4232');
+      blob(tx, ty, r, tree[0]); blob(tx - r * 0.3, ty - r * 0.35, r * 0.7, tree[1]); blob(tx + r * 0.2, ty - r * 0.55, r * 0.35, leaf);
+    }
+    // broken concrete wall with rebar
+    const wallC = mix(PAL.floorLt, far, 0.25);
+    for (let x = 0, i = 0; x < W; i++) {
+      const w = 26 + rnd(i, 50) * 40, h = 10 + rnd(i, 51) * 16;
+      box(x, F - h, w, h, wallC); box(x, F - h, w, 2, mix(wallC, '#ffffff', 0.25));
+      if (rnd(i, 52) < 0.5) { box(x + w * 0.4, F - h - 8, 1.5, 8, '#6a4a3a'); box(x + w * 0.7, F - h - 5, 1.5, 5, '#6a4a3a'); }
+      if (rnd(i, 53) < 0.6) blob(x + w * rnd(i, 54), F - h, 5 + rnd(i, 55) * 4, tree[1]);
+      x += w + (rnd(i, 56) < 0.3 ? 14 : 0);
+    }
+    // shipping container under the loft (sun-bleached, rusty, vines)
+    const cont = mix(PAL.wall, '#9a6a4a', 0.3), contLn = mix(PAL.wallLine, '#6a4a3a', 0.35);
+    box(0, L.loftY, L.loftX1, F - L.loftY, cont);
+    ctx.fillStyle = contLn; for (let x = 4; x < L.loftX1; x += 7) ctx.fillRect(x, L.loftY + 4, 2, F - L.loftY - 4);
+    box(8, L.loftY + 10, L.loftX1 - 16, F - L.loftY - 10, mix(cont, '#1c1410', 0.62)); // open side, dark inside
+    for (let i = 0; i < 6; i++) box(rnd(i, 60) * L.loftX1, L.loftY + rnd(i, 61) * 30, 6 + rnd(i, 62) * 10, 4 + rnd(i, 63) * 6, mix(cont, '#8a3a1a', 0.5)); // rust
+    // figure shelf on a scrap billboard on the roof
+    const sh = L.shelf;
+    box(sh.x0 + 6, sh.y + 4, 3, L.loftY - sh.y - 4, PAL.woodDk); box(sh.x1 - 9, sh.y + 4, 3, L.loftY - sh.y - 4, PAL.woodDk);
+    box(sh.x0 - 6, sh.y - 30, sh.x1 - sh.x0 + 12, 34, mix(PAL.wallLine, '#5a6a6a', 0.4));
+    box(sh.x0 - 4, sh.y - 28, sh.x1 - sh.x0 + 8, 2, mix(PAL.wallLine, '#ffffff', 0.3));
+    // poles + string lights over the roof
+    box(2, L.loftY - 100, 3, 100, PAL.woodDk); box(L.loftX1 - 10, L.loftY - 100, 3, 100, PAL.woodDk);
     ctx.strokeStyle = PAL.ink; ctx.lineWidth = 1;
     ctx.beginPath();
     const sy = L.loftY - 96;
@@ -1265,40 +1268,120 @@
       ctx.fillStyle = (Math.floor(t * 1.2) + k) % 3 === 0 ? '#6e665e' : bulbs[k % bulbs.length];
       ctx.fillRect(x - 1.5, sy + Math.sin((x / L.loftX1) * Math.PI * 3) * 6 + 7, 3, 4);
     }
-    // floor
+    // corrugated sheet behind the bar, bottle shelves on it
+    const cx0 = L.barX0 - 6, cx1 = L.barX1 + 6;
+    box(cx0, F - 128, cx1 - cx0, 128, mix(PAL.wall, '#5a7a84', 0.35));
+    ctx.fillStyle = mix(PAL.wallLine, '#3a5058', 0.4); for (let x = cx0 + 3; x < cx1; x += 6) ctx.fillRect(x, F - 126, 2, 126);
+    box(cx0, F - 130, cx1 - cx0, 3, mix(PAL.wallLine, '#2a3a40', 0.5));
+    box(L.barX0 + 2, F - 104, L.barX1 - L.barX0 - 4, 4, PAL.woodDk);
+    box(L.barX0 + 2, F - 82, L.barX1 - L.barX0 - 4, 4, PAL.woodDk);
+    const bottles = [PAL.greenDk, PAL.red, PAL.mustard, PAL.teal, PAL.cream, PAL.navy];
+    for (let x = L.barX0 + 8, k = 0; x < L.barX1 - 10; x += 9, k++) {
+      const h = 10 + (k * 5) % 6;
+      box(x, F - 104 - h, 6, h, bottles[k % bottles.length]); box(x + 2, F - 108 - h, 2, 4, bottles[k % bottles.length]);
+      if (k % 2 === 0) box(x, F - 92, 7, 10, '#e9e1cf');
+    }
+    // dart board on a plank backer + post
+    const bd = L.board;
+    box(bd.x - 2, bd.y, 4, F - bd.y, PAL.woodDk);
+    box(bd.x - bd.r - 6, bd.y - bd.r - 6, bd.r * 2 + 12, bd.r * 2 + 12, PAL.wood);
+    ctx.fillStyle = PAL.woodDk; for (let y = bd.y - bd.r - 2; y < bd.y + bd.r + 6; y += 8) ctx.fillRect(bd.x - bd.r - 6, y, bd.r * 2 + 12, 1.2);
+    // clock on a signpost by the TV pile, hubcap on the canopy post
+    const clx = (L.winX0 + L.winX1) / 2, cly = F - 168;
+    box(clx - 1.5, cly, 3, F - 62 - cly, PAL.woodDk);
+    ctx.fillStyle = PAL.woodDk; ctx.beginPath(); ctx.arc(clx, cly, 15, 0, 7); ctx.fill();
+    ctx.fillStyle = PAL.cream; ctx.beginPath(); ctx.arc(clx, cly, 12, 0, 7); ctx.fill();
+    const now = new Date(), hA = ((now.getHours() % 12) + now.getMinutes() / 60) / 12 * Math.PI * 2, mA = now.getMinutes() / 60 * Math.PI * 2;
+    ctx.strokeStyle = PAL.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(clx, cly); ctx.lineTo(clx + Math.sin(hA) * 6, cly - Math.cos(hA) * 6);
+    ctx.moveTo(clx, cly); ctx.lineTo(clx + Math.sin(mA) * 9, cly - Math.cos(mA) * 9); ctx.stroke();
+    ctx.fillStyle = '#9aa0a8'; ctx.beginPath(); ctx.arc(L.barX1 + 24, F - 150, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = '#5f646c'; ctx.beginPath(); ctx.arc(L.barX1 + 24, F - 150, 4, 0, 7); ctx.fill();
+    // bunting between the poles on tall screens
+    if (F - 300 > 30) {
+      const by = F - 300;
+      ctx.strokeStyle = PAL.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, by); ctx.quadraticCurveTo(W / 2, by + 26, W, by); ctx.stroke();
+      const flags = [PAL.red, PAL.mustard, PAL.teal, PAL.cream, PAL.green];
+      for (let x = 8, k = 0; x < W; x += 22, k++) {
+        const yy = by + Math.sin((x / W) * Math.PI) * 13;
+        ctx.fillStyle = flags[k % flags.length]; ctx.beginPath(); ctx.moveTo(x - 6, yy); ctx.lineTo(x + 6, yy); ctx.lineTo(x, yy + 11); ctx.fill();
+      }
+    }
+    // ground: cracked concrete slabs, grass, flowers, puddles or snow
     box(0, F, W, H - F, PAL.floor);
     ctx.fillStyle = PAL.floorLine;
-    for (let y = F + 7; y < H; y += 8) ctx.fillRect(0, y, W, 1.2);
-    for (let y = F, row = 0; y < H; y += 8, row++) for (let x = (row % 2) * 22; x < W; x += 44) ctx.fillRect(x, y, 1.2, 8);
+    for (let y = F + 9, row = 0; y < H; y += 10, row++) {
+      ctx.fillRect(0, y, W, 1.2);
+      for (let x = (row % 2) * 19 + rnd(row, 70) * 10; x < W; x += 38 + rnd(row, x) * 12) ctx.fillRect(x, y - 9, 1.2, 9);
+    }
+    for (let i = 0; i < W / 14; i++) { const gx = rnd(i, 71) * W, gy = F + rnd(i, 72) * (H - F); box(gx, gy, 2, 3, tree[1]); box(gx + 2, gy - 1, 2, 4, leaf); }
+    for (let i = 0; i < W / 40; i++) { const gx = rnd(i, 73) * W, gy = F + 2 + rnd(i, 74) * (H - F - 4); box(gx, gy, 2.5, 2.5, rnd(i, 75) < 0.5 ? '#f2a0b4' : '#fbfbf2'); box(gx + 0.5, gy + 2.5, 1, 2, tree[1]); }
     box(0, F, W, 2, PAL.floorLt);
+    for (let x = 0, i = 0; x < W; x += 6, i++) box(x, F - 2 - rnd(i, 76) * 4, 3, 4 + rnd(i, 76) * 4, rnd(i, 77) < 0.5 ? tree[1] : leaf);
+    if (wet > 0) { ctx.globalAlpha = wet * 0.6; for (let i = 0; i < W / 70; i++) box(rnd(i, 78) * W, F + 4 + rnd(i, 79) * (H - F - 8), 18 + rnd(i, 80) * 20, 2.5, mix(hor, '#ffffff', 0.3)); ctx.globalAlpha = 1; }
+    if (wx.kind === 'snow') { ctx.globalAlpha = wx.mix; box(0, F - 1, W, 3, '#f4f6fa'); for (let i = 0; i < W / 20; i++) box(rnd(i, 81) * W, F + rnd(i, 82) * (H - F), 6, 2, '#f4f6fa'); ctx.globalAlpha = 1; }
     // rug under the sofa
     box(L.sofaX0 - 10, F + 2, L.sofaX1 - L.sofaX0 + 20, 10, PAL.rug);
     ctx.fillStyle = PAL.rugDot; for (let x = L.sofaX0 - 6; x < L.sofaX1 + 8; x += 8) ctx.fillRect(x, F + 6, 4, 2);
     // throw line
     box(L.line.x0, F + 3, L.line.x1 - L.line.x0, 2, 'rgba(236,228,210,.8)');
   }
+  const canopyY = () => view.floor - 214;
   const lampXs = () => (PAL.lamps === 3 ? [0.16, 0.5, 0.84] : [0.3, 0.75]).map((f) => layout.barX0 + (layout.barX1 - layout.barX0) * f);
   const lampY = () => view.floor - 178 + PAL.lampDrop;
+  // Vines that hang from or climb things.
+  function vines(x0, x1, y, len, seed) {
+    for (let x = x0, i = 0; x < x1; x += 7 + rnd(seed, i) * 9, i++) {
+      const l = len * (0.3 + rnd(seed + 1, i) * 0.7);
+      box(x, y, 1.5, l, PAL.greenDk);
+      for (let k = 2; k < l; k += 4) box(x + (k % 8 < 4 ? -2 : 1.5), y + k, 2.5, 2.5, k % 12 < 6 ? PAL.green : '#8fbf5a');
+    }
+  }
+  // The open-air bar's canopy: two scrap posts and a sagging, tattered tarp.
+  function drawCanopy() {
+    const L = layout, F = view.floor, x0 = L.barX0 - 16, x1 = L.jukeX + 22, y = canopyY();
+    box(x0, y, 4, F - y, PAL.woodDk); box(x1 - 4, y, 4, F - y, PAL.woodDk);
+    box(x0 - 2, y - 2, x1 - x0 + 4, 4, PAL.woodDk);
+    for (let x = x0, k = 0; x < x1; x += 14, k++) {
+      const sag = Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * 6;
+      ctx.fillStyle = k % 2 ? PAL.cushion : PAL.rug;
+      ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x + 14, y + 2); ctx.lineTo(x + 14, y + 14 + sag); ctx.lineTo(x + 10, y + 18 + sag); ctx.lineTo(x + 7, y + 13 + sag); ctx.lineTo(x + 3, y + 19 + sag); ctx.lineTo(x, y + 14 + sag); ctx.fill();
+    }
+    vines(x0, x1, y + 14, 26, 900);
+  }
+  // Overgrown CRT pile behind the lookout bench (the old "window seat").
+  function drawTvPile(t) {
+    const L = layout, F = view.floor, x0 = L.winX0 + 2, x1 = L.winX1 - 2, w = x1 - x0;
+    box(x0, F - 62, w, 38, '#8a9aa4'); box(x0 + 2, F - 60, w - 4, 2, '#b8c4ca'); box(x1 - 6, F - 62, 6, 38, '#6e7e88');
+    box(x0 + 5, F - 56, w - 16, 26, '#3a4a58');
+    box(x0 + 7, F - 54, w - 20, 22, (Math.floor(t * 3) % 9) ? '#4f6a7a' : '#6f8a9a'); box(x0 + 9, F - 52, 6, 2, '#8fb0c0');
+    vines(x0 + 2, x1 - 4, F - 62, 18, 901);
+    blob(x0 + 6, F - 63, 4, PAL.green); blob(x1 - 10, F - 63, 3, '#8fbf5a');
+    box(x1 - 14, F - 66, 3, 3, '#e86a6a'); box(x1 - 13, F - 63, 1, 3, PAL.greenDk);
+  }
 
   // ---------- room: object layer (gets the pixel outline) ----------
   function drawProps(t, musicOn) {
     const F = view.floor, L = layout;
     const used = (id) => occ[id] && occ[id].some((v) => v != null);
-    // loft slab, posts, railing, ladder
-    box(0, L.loftY, L.loftX1, 9, PAL.wood); box(0, L.loftY + 7, L.loftX1, 3, PAL.woodDk);
+    drawCanopy();
+    // container roof (the loft), posts, railing, ladder
+    box(0, L.loftY, L.loftX1, 9, mix(PAL.wall, '#7a5a44', 0.45)); box(0, L.loftY + 7, L.loftX1, 3, mix(PAL.wallLine, '#3a2a20', 0.5));
+    vines(6, L.loftX1 - 14, L.loftY + 10, 24, 902);
     box(L.loftX1 - 6, L.loftY, 6, F - L.loftY, PAL.woodDk);
     box(L.loftX1 * 0.5, L.loftY + 9, 5, F - L.loftY - 9, PAL.woodDk);
     box(L.ladderX - 8, L.loftY - 16, 3, F - L.loftY + 16, PAL.woodLt); box(L.ladderX + 5, L.loftY - 16, 3, F - L.loftY + 16, PAL.woodLt);
     for (let y = L.loftY - 8; y < F - 4; y += 13) box(L.ladderX - 6, y, 12, 2.5, PAL.woodLt);
     // stove
     const sx = L.stoveX;
-    box(sx - 3, 9, 6, F - 52, PAL.metalDk);
-    rr(sx - 17, F - 50, 34, 44, 5); ctx.fillStyle = PAL.stove; ctx.fill();
-    box(sx - 15, F - 6, 4, 6, '#3a3734'); box(sx + 11, F - 6, 4, 6, '#3a3734');
-    box(sx - 10, F - 36, 20, 16, '#2b2826');
+    // oil-drum fire pit
+    box(sx - 14, F - 40, 28, 40, PAL.stove); box(sx - 14, F - 40, 28, 3, mix(PAL.stove, '#ffffff', 0.2));
+    box(sx - 14, F - 28, 28, 2, mix(PAL.stove, '#000000', 0.3)); box(sx - 14, F - 14, 28, 2, mix(PAL.stove, '#000000', 0.3));
+    box(sx - 10, F - 22, 6, 5, mix(PAL.stove, '#8a3a1a', 0.5)); box(sx + 4, F - 34, 5, 4, mix(PAL.stove, '#8a3a1a', 0.5));
+    for (let k = -8; k <= 6; k += 7) box(sx + k, F - 26, 3, 3, PAL.fire); // glowing holes
     const fl = Math.sin(t * 13) * 2 + Math.sin(t * 7.3) * 1.5;
-    ctx.fillStyle = PAL.fire; ctx.beginPath(); ctx.moveTo(sx - 8, F - 21); ctx.lineTo(sx - 2, F - 33 - fl); ctx.lineTo(sx + 4, F - 26); ctx.lineTo(sx + 8, F - 21); ctx.fill();
-    ctx.fillStyle = PAL.fire2; ctx.beginPath(); ctx.moveTo(sx - 4, F - 21); ctx.lineTo(sx, F - 28 + fl); ctx.lineTo(sx + 4, F - 21); ctx.fill();
+    ctx.fillStyle = PAL.fire; ctx.beginPath(); ctx.moveTo(sx - 12, F - 40); ctx.lineTo(sx - 6, F - 56 - fl); ctx.lineTo(sx - 1, F - 46); ctx.lineTo(sx + 4, F - 60 + fl); ctx.lineTo(sx + 12, F - 40); ctx.fill();
+    ctx.fillStyle = PAL.fire2; ctx.beginPath(); ctx.moveTo(sx - 6, F - 40); ctx.lineTo(sx, F - 51 + fl); ctx.lineTo(sx + 6, F - 40); ctx.fill();
     box(sx - 24, F - 14, 8, 14, PAL.woodLt); box(sx - 23, F - 20, 6, 6, PAL.wood); // log basket
     // manga bookshelf
     const m0 = L.byId.manga.hit.x0, m1 = L.byId.manga.hit.x1;
@@ -1355,7 +1438,8 @@
     rr(jx - 10, F - 52, 20, 20, 8); ctx.fillStyle = musicOn ? PAL.glow : '#c9b48a'; ctx.fill();
     for (let k = 0; k < 4; k++) box(jx - 9 + k * 5, F - 28, 3, 10, musicOn && (Math.floor(t * 6) + k) % 2 ? PAL.fire2 : PAL.mustard);
     box(jx - 12, F - 14, 24, 10, PAL.woodDk);
-    // projector screen (rolls down while a video plays) and the ceiling projector
+    // projector screen (rolls down while a video plays) on a scrap frame, projector under the canopy
+    { const sc = L.screen; box(sc.x0 - 10, sc.y0 - 8, 3, F - 112 - (sc.y0 - 8), PAL.woodDk); box(sc.x1 + 7, sc.y0 - 8, 3, F - 112 - (sc.y0 - 8), PAL.woodDk); box(sc.x0 - 10, sc.y0 - 10, sc.x1 - sc.x0 + 20, 4, PAL.woodDk); }
     if (proj.t > 0.01) {
       const sc = L.screen, w = sc.x1 - sc.x0, h = (sc.y1 - sc.y0) * proj.t;
       box(sc.x0 - 6, sc.y0 - 6, w + 12, 6, '#3e3a36'); box(sc.x0 - 8, sc.y0 - 5, 4, 4, PAL.metalDk); box(sc.x1 + 4, sc.y0 - 5, 4, 4, PAL.metalDk);
@@ -1363,7 +1447,7 @@
       box(sc.x0, sc.y0, w, h, '#ece6d8');
       box(sc.x0 + w / 2 - 3, sc.y0 + h + 4, 6, 3, '#2b2826');
       const pj = L.projector;
-      box(pj.x - 1, 9, 2, pj.y - 9, PAL.ink);
+      box(pj.x - 1, F - 212, 2, pj.y - (F - 212), PAL.ink);
       rr(pj.x - 12, pj.y, 24, 11, 2); ctx.fillStyle = '#4a4642'; ctx.fill();
       box(pj.x + 10, pj.y + 3, 5, 5, '#2b2826');
       box(pj.x - 8, pj.y + 3, 3, 2, proj.t > 0.9 ? '#f4c65a' : '#6e665e');
@@ -1390,7 +1474,8 @@
       ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(m.x - 9, F - 60, 3, 6);
       box(m.x - 12, F - 68, 24, 4, col);
     }
-    // window seat
+    // lookout bench in front of the overgrown TV pile
+    drawTvPile(t);
     box(L.winX0, F - 18, L.winX1 - L.winX0, 18, PAL.wood); rr(L.winX0 + 2, F - 24, L.winX1 - L.winX0 - 4, 7, 3); ctx.fillStyle = PAL.cushion; ctx.fill();
     box(L.winX1 - 2, F - 20, 12, 20, PAL.redDk); ctx.fillStyle = PAL.green;
     ctx.beginPath(); ctx.ellipse(L.winX1 + 4, F - 28, 9, 10, 0, 0, 7); ctx.fill();
@@ -1403,6 +1488,7 @@
     box(s0 + 4, F - 4, 3, 4, PAL.ink); box(s1 - 7, F - 4, 3, 4, PAL.ink);
     rr(s0 + 10, F - 36, 13, 13, 3); ctx.fillStyle = PAL.mustard; ctx.fill();
     // pendant lamp shades
+    for (const lx of lampXs()) box(lx - 0.5, canopyY() + 4, 1, lampY() - canopyY() - 4, PAL.ink);
     for (const lx of lampXs()) {
       const ly = lampY();
       ctx.fillStyle = PAL.lampCol;
@@ -1461,6 +1547,21 @@
   }
 
   // Warm light pools, added after the colour grade.
+  // Weather falling over the whole open-air scene.
+  function precip(kind, a, t, mood) {
+    if (a <= 0.02) return;
+    const x0 = view.camX, w = view.W, h = view.H;
+    ctx.save(); ctx.globalAlpha = a;
+    if (kind === 'rain' || kind === 'storm') {
+      ctx.fillStyle = mood.night ? 'rgba(170,190,230,.55)' : 'rgba(235,250,255,.6)';
+      const n = kind === 'storm' ? 70 : 45;
+      for (let i = 0; i < n; i++) { const r = rain[i]; const yy = ((r.y + t * r.v * (kind === 'storm' ? 1.4 : 1)) % 1) * (h + 20) - 20; ctx.fillRect(x0 + r.x * w, yy, 1.2, 9); }
+    }
+    if (kind === 'snow') { ctx.fillStyle = '#ffffff'; for (const f of flakes) ctx.fillRect(x0 + ((f.x + Math.sin(t * 0.8 + f.p) * 0.03 + 1) % 1) * w, ((f.y + t * f.v) % 1) * h, 2, 2); }
+    if (kind === 'petals') { ctx.fillStyle = '#f2c4d0'; for (const f of petals) ctx.fillRect(x0 + ((f.x + t * 0.03 + Math.sin(t + f.p) * 0.04 + 1) % 1) * w, ((f.y + t * f.v) % 1) * h, 2.5, 1.6); }
+    if (kind === 'fog') { ctx.fillStyle = 'rgba(236,240,238,.28)'; for (let i = 0; i < 4; i++) ctx.fillRect(x0 - 40 + ((t * 4 * (i % 2 ? 1 : -1)) % 40), h * (0.35 + i * 0.15), w + 80, 10); }
+    ctx.restore();
+  }
   function drawLights(t, musicOn, mood) {
     const F = view.floor, L = layout;
     const glow = (x, y, r, a, col = '246,213,142') => {
@@ -1476,6 +1577,9 @@
     if (occ.tent && occ.tent.some((v) => v != null)) glow(L.byId.tent.seats[0].x, L.loftY - 14, 34, 0.3 * k);
     if (musicOn) glow(L.jukeX, F - 40, 40, 0.22 * k, '240,180,120');
     const wx = weatherNow();
+    ctx.globalCompositeOperation = 'source-over';
+    precip(wx.prev, 1 - wx.mix, t, mood); precip(wx.kind, wx.mix, t, mood);
+    ctx.globalCompositeOperation = 'lighter';
     if (wx.kind === 'storm' && wx.mix > 0.5) { const f = lightning(t); if (f > 0) { ctx.fillStyle = `rgba(220,226,255,${0.12 * f})`; ctx.fillRect(0, 0, view.WW, view.H); } }
     for (let x = 10; x < L.loftX1; x += 40) glow(x, L.loftY - 88, 18, 0.12 * k, PAL.glowRGB);
     ctx.globalCompositeOperation = 'source-over';
@@ -1906,8 +2010,8 @@
   }
   // Fade toward the DS-photo palette: less saturation, a warm grey cast.
   function grade(g, w, h, night) {
-    g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,0.32)'; g.fillRect(0, 0, w, h);
-    g.globalCompositeOperation = 'multiply'; g.fillStyle = night ? 'rgba(150,155,190,.55)' : 'rgba(238,228,212,.6)'; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,0.1)'; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = night ? 'rgba(140,150,200,.6)' : 'rgba(252,246,236,.35)'; g.fillRect(0, 0, w, h);
     g.globalCompositeOperation = 'source-over';
   }
   function screenDoor() {

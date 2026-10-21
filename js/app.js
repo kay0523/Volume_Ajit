@@ -886,7 +886,7 @@
     if (fx.caffeine) { me.caffeine = Math.min(100, me.caffeine + fx.caffeine); parts.push(`카페인 +${fx.caffeine}`); tickGauges.warned = false; }
     if (fx.focus) { me.focus = Math.min(100, me.focus + fx.focus); parts.push(`정신력 +${fx.focus}`); }
     gainExp(fx.exp || 2); save(); renderHud();
-    const msg = id === 'window' ? `🪟 창밖은 ${NG.stage.weather().name}… 멍` : fx.msg;
+    const msg = id === 'window' ? `☁️ 오늘 하늘은 ${NG.stage.weather().name}… 멍` : fx.msg;
     toast(`${msg}${parts.length ? ' · ' + parts.join(' · ') : ''}`);
   };
   function renderRest() {
@@ -894,7 +894,7 @@
     $('#rest-list').innerHTML = NG.stage.spots.map((s) => {
       const who = NG.stage.chars.filter((c) => c.task && c.task.spot === s.id && c.task.phase === 'do').map((c) => esc(c.name));
       return `<button class="rest ${cur === s.id ? 'on' : ''}" data-spot="${s.id}"><span class="re">${s.e}</span>
-        <span class="rn"><b>${esc(s.n)}</b><small>${esc(s.desc)}${s.id === 'window' ? ' · 창밖: ' + NG.stage.weather().name : ''}${who.length ? ' · ' + who.join(', ') + ' 이용 중' : ''}</small></span><em>${cur === s.id ? '이용 중' : '가기'}</em></button>`;
+        <span class="rn"><b>${esc(s.n)}</b><small>${esc(s.desc)}${s.id === 'window' ? ' · 하늘: ' + NG.stage.weather().name : ''}${who.length ? ' · ' + who.join(', ') + ' 이용 중' : ''}</small></span><em>${cur === s.id ? '이용 중' : '가기'}</em></button>`;
     }).join('');
     renderMusic();
   }

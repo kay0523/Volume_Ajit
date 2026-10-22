@@ -647,3 +647,23 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 .brag-btn { width: 100%; margin: 6px 0 2px; background: linear-gradient(#f6dc7a, #e8b830); border-color: #8a5a10; font-family: var(--font-b); }
 .brag-btn small { font-family: var(--font); font-size: 11px; opacity: .8; }
 @media (prefers-reduced-motion: reduce) { .brag-card, .brag-float i { animation: none; } }
+
+/* shared event buttons (top centre of the stage) and their banner */
+#stage-wrap { position: relative; }
+.ev-bar { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; gap: 4px; padding: 4px;
+  background: rgba(40, 30, 24, .62); border: 2px solid var(--frame); border-radius: 4px; box-shadow: 3px 3px 0 rgba(20, 14, 10, .4); }
+.ev-bar button { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 2px solid var(--frame); border-radius: 3px; background: var(--paper-hi);
+  color: var(--ink); font-size: 12px; box-shadow: 0 2px 0 var(--frame); white-space: nowrap; }
+.ev-bar button span { font-size: 15px; }
+.ev-bar button em { font-style: normal; }
+.ev-bar button:hover { background: #fff3d0; }
+.ev-bar button.on { background: linear-gradient(#f6dc7a, #e8b830); animation: evPulse 1s ease-in-out infinite; }
+.ev-bar button.busy { opacity: .5; }
+@keyframes evPulse { 50% { transform: translateY(-2px); } }
+.ev-banner { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 6; pointer-events: none; white-space: nowrap;
+  background: var(--paper); border: 3px solid var(--frame); border-radius: 4px; padding: 6px 14px; font-size: 14px; box-shadow: 4px 4px 0 rgba(20, 14, 10, .45); }
+.ev-banner b { font-family: var(--font-b); color: #8a5a10; }
+.ev-banner.show { animation: evIn 4.2s ease forwards; }
+@keyframes evIn { 0% { opacity: 0; transform: translate(-50%, -10px) scale(.9); } 8%, 85% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; } }
+@media (max-width: 560px) { .ev-bar button em { display: none; } .ev-bar button { padding: 4px 7px; } .ev-banner { font-size: 12px; white-space: normal; width: max-content; max-width: 90vw; text-align: center; } }
+@media (prefers-reduced-motion: reduce) { .ev-bar button.on, .ev-banner.show { animation: none; } }

@@ -421,6 +421,35 @@
     if (kind === 'try') { hideBrag(); openGachaShop(key); }
   });
 
+  // ---------- shared events (top-centre buttons): everyone's screen plays the same scene ----------
+  let evMineAt = 0, evBannerT = null;
+  function evBanner(kind, who) {
+    const E = NG.stage.EVENTS[kind], el = $('#ev-banner');
+    el.innerHTML = `<span>${E.e}</span> <b>${esc(who || '누군가')}</b>님의 <b>${esc(E.n)}</b>!`;
+    el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    clearTimeout(evBannerT); evBannerT = setTimeout(() => { el.hidden = true; }, 4200);
+  }
+  function runEvent(kind, slot) {
+    const who = slot === me.slot ? me.name : (shared.players[slot] && shared.players[slot].name) || (NG.stage.getChar(slot) || {}).name;
+    if (NG.stage.startEvent(kind, who)) evBanner(kind, who);
+  }
+  $('#ev-bar').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ev]'); if (!b) return;
+    if (me.slot == null) { askIdentity(); return; }
+    const cur = NG.stage.event;
+    if (cur) { toast(`${cur.n} 진행 중이에요 · ${Math.ceil(cur.left)}초 뒤에`); return; }
+    if (Date.now() - evMineAt < 20000) { toast('이벤트는 20초에 한 번씩 열 수 있어요'); return; }
+    evMineAt = Date.now();
+    const kind = b.dataset.ev;
+    runEvent(kind, me.slot);
+    NG.net.send({ type: 'act', slot: me.slot, a: 'ev:' + kind });
+    NG.net.send({ type: 'sys', slot: me.slot, text: `${NG.stage.EVENTS[kind].e} ${me.name}님이 [${NG.stage.EVENTS[kind].n}] 이벤트를 열었어요!` });
+  });
+  setInterval(() => { // show which event is on and for how long
+    const cur = NG.stage.event;
+    $$('#ev-bar button').forEach((b) => { const on = cur && NG.stage.EVENTS[b.dataset.ev].n === cur.n; b.classList.toggle('on', !!on); b.classList.toggle('busy', !!cur && !on); });
+  }, 500);
+
   NG.stage.onGacha = (key) => {
     if (me.slot == null) { askIdentity(); return; }
     NG.stage.act(me.slot, 'spot:gacha'); NG.net.send({ type: 'act', slot: me.slot, a: 'spot:gacha' });
@@ -1173,6 +1202,8 @@
     else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
     else if (m.type === 'act') {
       if (m.slot === me.slot) return;
+      const evm = /^ev:(\w+)$/.exec(m.a);
+      if (evm) { runEvent(evm[1], m.slot); return; }
       const rx = /^rx:(\w{1,8}):(\w+)$/.exec(m.a);
       if (rx) { if (bragNow && bragNow.bid === rx[1]) addReaction(m.slot, rx[2]); return; }
       if (m.a === 'whois') { if (Date.now() - (handle.whoisAt || 0) > 3000) { handle.whoisAt = Date.now(); sendPresence(); } return; }

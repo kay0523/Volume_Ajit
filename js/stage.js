@@ -277,6 +277,7 @@
 
     }
 
+    if (ev && evDrive(c)) return;
     if (c.task && c.task.phase === 'do') {
       seatChar(c);
       if (performance.now() > c.task.until) { standUp(c); c.aiT = 0.6 + Math.random() * 0.8; } // then back to auto-play
@@ -327,12 +328,12 @@
     } else {
       if (c.ground) c.vx = 0;
       c.aiT -= dt;
-      if (c.aiT <= 0) think(c);
+      if (c.aiT <= 0 && !(ev && evGoal(c))) think(c);
     }
 
     if (c.vx) c.dir = Math.sign(c.vx);
     const prevY = c.y;
-    c.x = Math.max(12, Math.min(view.WW - 12, c.x + c.vx * dt));
+    c.x = Math.max(12, Math.min(ev && ev.kind === 'leave' ? view.WW + 140 : view.WW - 12, c.x + c.vx * dt)); // off the right edge when clocking out
     if (!c.ground) {
       c.vy += G * dt;
       c.y += c.vy * dt;
@@ -440,7 +441,7 @@
     if (anim === 'brag') { aL = 2.92 + Math.sin(t * 6) * 0.04; aR = -2.92 - Math.sin(t * 6) * 0.04; }
     if (!c.climbing) arm(-10, aL);
     if (pose === 'read') { box(5, -38, 14, 11, '#9c4a3f'); box(6, -37, 12, 9, '#ece4d2'); box(11.5, -38, 1, 11, '#76362f'); }
-    if (pose === 'sip' || anim === 'sip') drawCup(pose === 'sip' ? c.drink : null);
+    if (pose === 'sip' || anim === 'sip') drawCup(pose === 'sip' || ev ? c.drink : null);
     arm(10, aR);
     if (c.climbing) arm(-10, aL);
     if (anim === 'brag' && c.bragLook) { // the figure on its stand, held high
@@ -544,6 +545,12 @@
         ctx.fillStyle = '#1d1d2b'; rr(-1.5, -2.5, 9, 6, 2.5); ctx.fill(); rr(8, -2.5, 9, 6, 2.5); ctx.fill(); ctx.fillRect(6, -1.5, 3, 1.4);
       }
     }
+    if (ev && ev.kind === 'party') { // necktie round the forehead, drunk-uncle style
+      ctx.fillStyle = '#c0303a'; ctx.fillRect(-16, -9, 32, 4);
+      ctx.beginPath(); ctx.moveTo(13, -8); ctx.lineTo(27, 2); ctx.lineTo(24, 12); ctx.lineTo(21, 4); ctx.lineTo(14, -3); ctx.fill();
+      ctx.fillStyle = '#8a1a24'; ctx.beginPath(); ctx.moveTo(14, -8); ctx.lineTo(19, -2); ctx.lineTo(15, -1); ctx.fill();
+      ctx.fillStyle = '#e8c24a'; ctx.fillRect(-4, -9, 3, 4);
+    }
     if (d.hat === 'cap') {
       ctx.fillStyle = d.hatColor;
       ctx.beginPath(); ctx.ellipse(0, -8, 17, 11, 0, Math.PI, 0); ctx.fill();
@@ -570,7 +577,7 @@
 
   // The glass in a character's hand at the bar, shaped by what they ordered.
   function drawCup(id) {
-    const d = id && NG.DRINKS ? NG.DRINKS.find((x) => x.id === id) : null;
+    const d = id === 'vinchaud' ? { color: '#8a2a3a', cup: 'mug' } : id && NG.DRINKS ? NG.DRINKS.find((x) => x.id === id) : null;
     const col = d ? d.color : '#6b4630', cup = d ? d.cup : 'mug', glass = 'rgba(230,240,240,.85)';
     switch (cup) {
       case 'tall': box(10, -50, 8, 13, glass); box(11, -47, 6, 9, col); box(15, -54, 1.5, 6, '#e86a6a'); break;
@@ -739,6 +746,8 @@
   // Where the pet should be right now: x, the floor level it stands on, and a perch y when it sits on someone.
   function petGoal(p) {
     const W = view.WW, F = view.floor, side = p.i % 2 ? -1 : 1, gap = 20 + (p.i % 3) * 10;
+    const eg = evPetGoal(p);
+    if (eg) return eg;
     const fed = p.fed && performance.now() < p.fed.until ? p.fed : null;
     if (fed) {
       const c = getChar(fed.by);
@@ -859,6 +868,7 @@
         }
       }
     }
+    if (ev && p.at && !p.evSaid) { const eg = evPetGoal(p); if (eg) { p.evSaid = true; p.emote = eg.e; p.emoteT = 2.4; } }
     if (p.at && !p.said) {
       p.said = true;
       const fed = p.fed;
@@ -870,6 +880,8 @@
   function petPose(p) {
     if (p.mode === 'air' || p.mode === 'hop') return 'air';
     if (p.mode === 'climb') return 'walk';
+    const eg = evPetGoal(p);
+    if (eg) return p.at ? eg.pose : 'walk';
     if (p.fed && performance.now() < p.fed.until) {
       if (!p.at) return 'walk';
       const k = p.fed.kind;
@@ -1190,6 +1202,141 @@
     if (kind === 'fog') {
       ctx.fillStyle = 'rgba(236,236,232,.5)';
       for (let i = 0; i < 3; i++) { const yy = y0 + h * (0.3 + i * 0.22), off = ((t * 3 * (i % 2 ? 1 : -1)) % 30); ctx.fillRect(x0 + off - 30, yy, w + 60, 4); }
+    }
+    ctx.restore();
+  }
+
+  // ---------- shared events: one person presses a button, every screen plays the same scene ----------
+  // Everyone's own tab moves their own character (and streams it); bubbles, falling items and pets follow the
+  // event clock on every screen.
+  const EVENTS = {
+    goguma: { n: '강아지파의 고구마 비', e: '🍠', dur: 16, lines: ['고구마다!!', '하늘에서 고구마가?!', '멍멍이들 신났다 🐶', '나도 하나만…'] },
+    tuna: { n: '고양이파의 참치캔 비', e: '🐟', dur: 16, lines: ['참치캔 비다!', '냥이들 난리났네 🐱', '츄르도 내려줘~', '캔따개 어딨어?'] },
+    leave: { n: '퇴근 시뮬레이션', e: '🏃', dur: 17, out: 9, lines: ['들어가보겠습니다!', '수고하셨습니다~', '내일 봬요!', '퇴근!!! 🏃'] },
+    party: { n: '알코올 파티', e: '🍻', dur: 24, lines: ['건배~!! 🍻', '한 잔 더!', '딸꾹… 🥴', '오늘은 내가 쏜다!', '노래 한 곡 뽑아?'] },
+    camp: { n: '캠핑 가기', e: '🏕️', dur: 30, lines: ['삼겹살 다 익었다! 🥓', '뱅쇼 한 잔 할 사람~ 🍷', '불멍 최고…', '쌈 싸 먹자!', '애들아 이건 안 돼 🐶🐱'] },
+  };
+  let ev = null;
+  const evT = () => (ev ? (performance.now() - ev.t0) / 1000 : 0);
+  const evIdx = (c) => chars.filter((x) => !x.gone).map((x) => x.id).sort().indexOf(c.id);
+  const fireX = () => view.WW * 0.5;
+  function startEvent(kind, by) {
+    const E = EVENTS[kind]; if (!E || !layout) return false;
+    endEvent();
+    ev = { kind, by, t0: performance.now(), dur: E.dur, id: Math.random(), items: [] };
+    if (kind === 'goguma' || kind === 'tuna') {
+      for (let i = 0; i < 46; i++) ev.items.push({ x: 20 + Math.random() * (view.WW - 40), y: -20 - Math.random() * 60, vy: 0, at: 0.2 + Math.random() * 6, landed: false, rot: Math.random() * 6 });
+    }
+    for (const c of chars) {
+      c.evSaid = -1;
+      if (kind === 'party') { c.drink = 'beer'; c.tipsyUntil = performance.now() + E.dur * 1000 + 8000; }
+      if (kind === 'camp') c.drink = 'vinchaud';
+    }
+    for (const p of pets) { p.evSaid = false; }
+    return true;
+  }
+  function endEvent() {
+    if (!ev) return;
+    for (const c of chars) {
+      if (c.evId !== ev.id) continue;
+      c.evId = null; c.pose = null; c.anim = null; c.animT = 0; c.manual = false; c.aiT = 1 + Math.random();
+      if (!c.climbing && c.y < view.floor - 1 && c.x > layout.loftX1 + 2) c.y = view.floor; // off the bar stools
+      if (c.x > view.WW - 12) c.steps = [{ k: 'walk', x: view.WW * (0.5 + Math.random() * 0.3) }];
+    }
+    ev = null;
+  }
+  // Where a character goes for the event (by their place in the sorted list, so every screen agrees).
+  function evGoal(c) {
+    const i = Math.max(0, evIdx(c)), L = layout, F = view.floor, t = evT();
+    switch (ev.kind) {
+      case 'leave': return t < EVENTS.leave.out ? { x: view.WW + 40 + i * 26, pose: null, dir: 1 } : { x: view.WW * (0.5 + ((i * 0.13) % 0.4)), pose: null, dir: -1 };
+      case 'party': {
+        const seats = L.byId.bar.seats;
+        if (i < seats.length) return { x: seats[i].x, y: seats[i].y, pose: 'sip', dir: -1 };
+        return { x: L.barX0 + 18 + (i - seats.length) * 26, pose: 'listen', dir: -1, sip: true };
+      }
+      case 'camp': { const side = i % 2 ? 1 : -1, k = Math.floor(i / 2); return { x: fireX() + side * (62 + k * 30), pose: 'warm', dir: -side, sip: true }; }
+      default: return null; // item rain: people stay put and enjoy the show
+    }
+  }
+  // Takes over a character this tab plays. Returns true while it is holding the character in place.
+  function evDrive(c) {
+    const g = evGoal(c);
+    if (c.evId !== ev.id) {
+      c.evId = ev.id; standUp(c); c.petJob = null; c.sit = false; c.animT = 0; c.manual = true;
+      if (!g) { c.anim = 'cheer'; c.animT = 1.8; c.aiT = 3; return false; }
+      planTo(c, 0, g.x); return false;
+    }
+    if (!g) return false;
+    if (c.steps.length || !c.ground || c.climbing) return false;
+    if (Math.abs(c.x - g.x) > 4) { c.pose = null; c.steps = [{ k: 'walk', x: g.x }]; return false; }
+    c.vx = 0; c.dir = g.dir; c.pose = g.pose; if (g.y != null) c.y = g.y;
+    if (g.sip && c.animT <= 0 && Math.random() < 0.006) { c.anim = 'sip'; c.animT = 2.2; }
+    return true;
+  }
+  function updateEvent(dt) {
+    if (!ev) return;
+    const t = evT(), E = EVENTS[ev.kind];
+    if (t > ev.dur) { endEvent(); return; }
+    for (const it of ev.items) {
+      if (t < it.at || it.landed) continue;
+      it.vy += G * 0.35 * dt; it.y += it.vy * dt; it.rot += dt * 4;
+      if (it.y >= view.floor - 3) { it.y = view.floor - 3; it.landed = true; }
+    }
+    // speech bubbles on a shared schedule
+    chars.forEach((c) => {
+      const i = Math.max(0, evIdx(c)), k = Math.floor((t - 0.8 - i * 1.6) / 7);
+      if (k >= 0 && k > c.evSaid && k < 4) { c.evSaid = k; c.bubble = E.lines[(i + k) % E.lines.length]; c.bubbleT = 3.5; }
+    });
+  }
+  // Pets during events.
+  function evPetGoal(p) {
+    if (!ev) return null;
+    const t = evT(), W = view.WW;
+    switch (ev.kind) {
+      case 'goguma': case 'tuna': {
+        const fan = (ev.kind === 'goguma') === (p.sp === 'd');
+        if (!fan) return { x: p.x, lv: petLevel(p), pose: 'sit', e: '🙄' };
+        const landed = ev.items.filter((it) => it.landed);
+        if (!landed.length) return { x: p.x, lv: petLevel(p), pose: 'beg', e: '😮' };
+        const it = landed[(p.i * 3) % landed.length];
+        return { x: it.x + (p.i % 2 ? 10 : -10), lv: 0, pose: 'eat', e: ev.kind === 'goguma' ? '🍠' : '🐟', face: it.x };
+      }
+      case 'leave': return t < EVENTS.leave.out + 2 ? { x: W - 22 - p.i * 22, lv: 0, pose: 'beg', e: '🥺', face: W + 50 } : null;
+      case 'party': return { x: layout.barX0 - 10 + p.i * 20, lv: 0, pose: p.i % 3 ? 'sit' : 'wiggle', e: p.i % 2 ? '🍻' : '🥴', face: layout.barX0 + 40 };
+      case 'camp': { const side = p.i % 2 ? 1 : -1, k = Math.floor(p.i / 2); return { x: fireX() + side * (38 + (k % 3) * 9 + (k >= 3 ? 75 : 0)), lv: 0, pose: 'beg', e: p.i % 2 ? '🤤' : '🥩', face: fireX() }; }
+    }
+    return null;
+  }
+  function drawEventProps(t) {
+    if (!ev) return;
+    const F = view.floor, fade = Math.min(1, (ev.dur - evT()) / 1.5);
+    ctx.globalAlpha = Math.max(0, fade);
+    for (const it of ev.items) {
+      if (evT() < it.at) continue;
+      ctx.save(); ctx.translate(it.x, it.y); if (!it.landed) ctx.rotate(it.rot);
+      if (ev.kind === 'goguma') { ctx.fillStyle = '#8a3a5a'; ctx.beginPath(); ctx.ellipse(0, 0, 7, 4, 0.2, 0, 7); ctx.fill(); box(5, -2, 3, 3, '#e8c24a'); box(-8, -1, 2, 2, '#5f8a4a'); }
+      else { box(-5, -4, 10, 8, '#b8c0c8'); box(-5, -1, 10, 3, '#3a6ee0'); box(-5, -5, 10, 1.5, '#e9e9f2'); box(-2, -2, 4, 1.4, '#f2d27a'); }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawCampfire(t) {
+    if (!ev || ev.kind !== 'camp') return;
+    { const F0 = view.floor; ctx.save(); ctx.translate(fireX(), F0); ctx.scale(1.4, 1.4); ctx.translate(-fireX(), -F0); }
+    {
+      const F = view.floor;
+      const x = fireX(), fl = Math.sin(t * 13) * 2 + Math.sin(t * 7.3) * 1.5;
+      for (let k = 0; k < 6; k++) box(x - 13 + k * 4.4, F - 4 - (k % 2), 4, 4, '#8a8478'); // stones
+      box(x - 11, F - 7, 22, 3, PAL.woodDk); box(x - 9, F - 9, 18, 3, PAL.wood);
+      ctx.fillStyle = PAL.fire; ctx.beginPath(); ctx.moveTo(x - 9, F - 8); ctx.lineTo(x - 4, F - 22 - fl); ctx.lineTo(x, F - 14); ctx.lineTo(x + 4, F - 24 + fl); ctx.lineTo(x + 9, F - 8); ctx.fill();
+      ctx.fillStyle = PAL.fire2; ctx.beginPath(); ctx.moveTo(x - 4, F - 8); ctx.lineTo(x, F - 17 + fl); ctx.lineTo(x + 4, F - 8); ctx.fill();
+      // grill with sizzling pork belly
+      box(x - 16, F - 22, 2, 22, '#5f5c57'); box(x + 14, F - 22, 2, 22, '#5f5c57'); box(x - 17, F - 24, 34, 2, '#3a3734');
+      for (let k = 0; k < 4; k++) { box(x - 13 + k * 7, F - 27, 6, 3, (Math.floor(t * 0.5) + k) % 3 ? '#e8a090' : '#b8683a'); box(x - 13 + k * 7, F - 26, 6, 1, '#f6e0d0'); }
+      // vin chaud pot on the side
+      box(x + 22, F - 16, 3, 16, '#5f5c57'); rr(x + 18, F - 26, 14, 10, 2); ctx.fillStyle = '#3a3734'; ctx.fill(); box(x + 19, F - 26, 12, 2.5, '#8a2a3a');
+      box(x + 23, F - 31 - ((t * 8) % 6), 2, 2, 'rgba(240,240,240,.7)'); box(x + 27, F - 34 - ((t * 8 + 3) % 6), 2, 2, 'rgba(240,240,240,.6)');
     }
     ctx.restore();
   }
@@ -2085,6 +2232,7 @@
       for (const c of chars) updateChar(c, dt);
       for (const c of chars.filter((x) => x.gone)) { removeChar(c.id); if (NG.stage.onLeave) NG.stage.onLeave(c.id, c.name); }
       for (const p of pets) updatePet(p, dt);
+      updateEvent(dt);
       updateDart(dt);
     }
   }
@@ -2114,8 +2262,10 @@
     drawBoard();
     const sorted = [...chars].sort((a, b) => a.y - b.y);
     drawBowls();
-    for (const c of sorted) drawChar(c, t);
+    drawEventProps(t);
+    for (const c of sorted) if (c.x < view.WW + 8) drawChar(c, t);
     for (const p of [...pets].sort((a, b) => (a.mode === 'perch') - (b.mode === 'perch') || a.y - b.y)) drawPet(p, t);
+    drawCampfire(t);
     drawFlying();
     bctx.setTransform(1, 0, 0, 1, 0, 0);
     outlined(bctx, objL, tctx, bw, bh);
@@ -2327,6 +2477,8 @@
       if (!c.remote || c.remote.s.away) { standUp(c); c.steps = []; c.sit = false; c.vx = 0; c.aiT = 7; }
       c.anim = 'brag'; c.animT = 6;
     },
+    startEvent, EVENTS,
+    get event() { return ev ? { kind: ev.kind, left: Math.max(0, ev.dur - evT()), n: EVENTS[ev.kind].n } : null; },
     get people() { return chars.filter((c) => !c.gone).length; },
     applyRemote, getChar, defaultLook,
     pets, PET_FOOD, PET_ACTS, feedPet, petAct, batchim, petInfo: (i) => petInfo(pets[i]),

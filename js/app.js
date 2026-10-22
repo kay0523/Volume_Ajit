@@ -433,8 +433,21 @@
     const who = slot === me.slot ? me.name : (shared.players[slot] && shared.players[slot].name) || (NG.stage.getChar(slot) || {}).name;
     if (NG.stage.startEvent(kind, who)) evBanner(kind, who);
   }
+  // While a video plays, the bar folds into one 🎉 button if it would sit on top of the screen.
+  let evBarW = 0, evBarH = 0;
+  setInterval(() => {
+    const bar = $('#ev-bar'), wrap = $('#stage-wrap').getBoundingClientRect(), r = NG.stage.screenRect();
+    if (!bar.classList.contains('collapsed')) { evBarW = bar.offsetWidth; evBarH = bar.offsetHeight; }
+    const playing = NG.stage.projecting && r;
+    const x0 = wrap.width - evBarW - 6, y1 = 6 + evBarH;
+    const hits = playing && r.left < wrap.width - 6 && r.left + r.width > x0 && r.top < y1 && r.top + r.height > 6;
+    if (!hits) bar.classList.remove('open');
+    bar.classList.toggle('collapsed', !!hits);
+  }, 400);
   $('#ev-bar').addEventListener('click', (e) => {
+    if (e.target.closest('[data-evtoggle]')) { $('#ev-bar').classList.toggle('open'); return; }
     const b = e.target.closest('[data-ev]'); if (!b) return;
+    $('#ev-bar').classList.remove('open');
     if (me.slot == null) { askIdentity(); return; }
     const cur = NG.stage.event;
     if (cur) { toast(`${cur.n} 진행 중이에요 · ${Math.ceil(cur.left)}초 뒤에`); return; }

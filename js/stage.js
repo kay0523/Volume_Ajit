@@ -2473,6 +2473,7 @@
     chars, view, startDart, act, drawPreview, drawFigure, ACTIONS,
     onAction: null, onArrive: null, onGacha: null,
     set projecting(v) { proj.on = !!v; },
+    get projecting() { return proj.on; },
     get projectorReady() { return proj.t > 0.97; },
     decor() { return { name: THEMES[Math.max(0, decor.cur)].n, next: THEME_MS - (Date.now() % THEME_MS) }; },
     weather() { const w = weatherNow(); return { kind: w.kind, name: WEATHER_NAME[w.kind] }; },

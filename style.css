@@ -650,7 +650,7 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 
 /* shared event buttons (top centre of the stage) and their banner */
 #stage-wrap { position: relative; }
-.ev-bar { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; gap: 4px; padding: 4px;
+.ev-bar { position: absolute; top: 6px; right: 6px; z-index: 6; display: flex; gap: 4px; padding: 4px;
   background: rgba(40, 30, 24, .62); border: 2px solid var(--frame); border-radius: 4px; box-shadow: 3px 3px 0 rgba(20, 14, 10, .4); }
 .ev-bar button { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 2px solid var(--frame); border-radius: 3px; background: var(--paper-hi);
   color: var(--ink); font-size: 12px; box-shadow: 0 2px 0 var(--frame); white-space: nowrap; }
@@ -665,7 +665,7 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 .ev-banner b { font-family: var(--font-b); color: #8a5a10; }
 .ev-banner.show { animation: evIn 4.2s ease forwards; }
 @keyframes evIn { 0% { opacity: 0; transform: translate(-50%, -10px) scale(.9); } 8%, 85% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; } }
-@media (max-width: 560px) { .ev-bar button em { display: none; } .ev-bar button { padding: 4px 7px; } .ev-banner { font-size: 12px; white-space: normal; width: max-content; max-width: 90vw; text-align: center; } }
+@media (max-width: 560px) { .ev-bar { top: 4px; right: 4px; padding: 3px; gap: 3px; } .ev-bar button em { display: none; } .ev-bar button { padding: 3px 6px; } .ev-banner { font-size: 12px; white-space: normal; width: max-content; max-width: 90vw; text-align: center; } }
 @media (prefers-reduced-motion: reduce) { .ev-bar button.on, .ev-banner.show { animation: none; } }
 
 /* quick brag button on owned cards */
@@ -674,3 +674,9 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
   background: linear-gradient(#f6dc7a, #e8b830); border: 2px solid #8a5a10; border-radius: 3px; box-shadow: 0 2px 0 #6a4a10; cursor: pointer; z-index: 2; }
 .gbrag:hover { transform: translateY(-1px) scale(1.08); }
 @media (hover: hover) { .gcard .gbrag { opacity: .85; } .gcard:hover .gbrag { opacity: 1; } }
+.ev-bar .ev-toggle { display: none; }
+.ev-bar.collapsed .ev-toggle { display: flex; }
+.ev-bar.collapsed:not(.open) [data-ev] { display: none; }
+.ev-bar.collapsed.open { flex-direction: column; }
+.ev-bar.collapsed:not(.open) .ev-toggle em { display: none; }
+.ev-bar.collapsed:not(.open) { padding: 2px; }

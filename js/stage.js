@@ -410,9 +410,10 @@
 
     // arms
     const throwing = c.throwT > 0;
+    const armLen = anim === 'brag' ? 30 : 12; // stretched up to hold a figure over the head
     const arm = (ox, a) => { ctx.save(); ctx.translate(ox, -29); ctx.rotate(a);
-      ctx.fillStyle = d.coat ? '#eef0f2' : d.top; rr(-3, 0, 6, 12, 3); ctx.fill();
-      ctx.fillStyle = d.skin; ctx.beginPath(); ctx.arc(0, 13, 3, 0, 7); ctx.fill(); ctx.restore(); };
+      ctx.fillStyle = d.coat ? '#eef0f2' : d.top; rr(-3, 0, 6, armLen, 3); ctx.fill();
+      ctx.fillStyle = d.skin; ctx.beginPath(); ctx.arc(0, armLen + 1, 3, 0, 7); ctx.fill(); ctx.restore(); };
     let aL = c.ground ? -sw * 0.5 + 0.15 : 0.9;
     let aR = throwing ? -2.4 + (0.35 - c.throwT) * 6 : (c.ground ? sw * 0.5 - 0.15 : -0.9);
     if (c.climbing) { aL = -2.7 + Math.sin(c.walkT * 2) * 0.3; aR = -2.7 - Math.sin(c.walkT * 2) * 0.3; }
@@ -436,11 +437,22 @@
     if (anim === 'throw') aR = -2.7 + ((t * 1.6) % 1) * 2.6;
     if (anim === 'pour') aR = -1.6;
     if (anim === 'bow') { aL = 0.4; aR = -0.4; }
+    if (anim === 'brag') { aL = 2.92 + Math.sin(t * 6) * 0.04; aR = -2.92 - Math.sin(t * 6) * 0.04; }
     if (!c.climbing) arm(-10, aL);
     if (pose === 'read') { box(5, -38, 14, 11, '#9c4a3f'); box(6, -37, 12, 9, '#ece4d2'); box(11.5, -38, 1, 11, '#76362f'); }
     if (pose === 'sip' || anim === 'sip') drawCup(pose === 'sip' ? c.drink : null);
     arm(10, aR);
     if (c.climbing) arm(-10, aL);
+    if (anim === 'brag' && c.bragLook) { // the figure on its stand, held high
+      const f = c.bragLook, by = -64 + Math.sin(t * 6) * 0.8;
+      box(-15, by, 30, 4, PAL.woodDk); box(-9, by - 4, 18, 4, '#8a6a50');
+      ctx.fillStyle = f.pants; rr(-4, by - 12, 8, 8, 2); ctx.fill();
+      ctx.fillStyle = f.top; rr(-6, by - 22, 12, 11, 3); ctx.fill();
+      ctx.fillStyle = f.skin; ctx.beginPath(); ctx.arc(0, by - 28, 6.5, 0, 7); ctx.fill();
+      ctx.fillStyle = f.hair; ctx.beginPath(); ctx.ellipse(0, by - 30, 7, 5, 0, Math.PI, 0); ctx.fill();
+      if (f.hairStyle === 'long' || f.hairStyle === 'twin') { box(-7.5, by - 31, 3, 9, f.hair); box(4.5, by - 31, 3, 9, f.hair); }
+      box(1, by - 29, 1.6, 2, '#2b2233'); box(-2.6, by - 29, 1.6, 2, '#2b2233');
+    }
     if (anim === 'churu') box(20, -28, 10, 3, '#e8788a');
     if (anim === 'treat') { box(20, -27, 8, 2.5, '#f2ead8'); box(19, -28.5, 2.5, 5, '#f2ead8'); box(27, -28.5, 2.5, 5, '#f2ead8'); }
     if (anim === 'photo') { box(5, -46, 11, 8, '#2b2a33'); box(7, -44, 3, 3, '#7cc6ff'); }
@@ -603,6 +615,11 @@
     if (c.pose === 'listen' || c.animT > 0 && c.anim === 'dance') {
       ctx.font = `${12 * T}px ${FONT}`; ctx.fillStyle = '#9c4a3f';
       ctx.fillText('♪', c.x - 18 + Math.sin(t * 3) * 3, top + 8 - (t * 20 % 14)); ctx.fillText('♫', c.x + 18, top + 14 - ((t * 20 + 7) % 14));
+    }
+    if (c.animT > 0 && c.anim === 'brag') {
+      ctx.font = `${13 * T}px sans-serif`;
+      for (let k = 0; k < 3; k++) { const a = t * 2.5 + k * 2.1; ctx.globalAlpha = 0.5 + Math.sin(t * 5 + k) * 0.5; ctx.fillText('✨', c.x + Math.cos(a) * 26, top - 34 + Math.sin(a) * 8); }
+      ctx.globalAlpha = 1;
     }
     if (c.emoteT > 0 && c.emote) {
       ctx.font = `${20 * T}px sans-serif`;
@@ -2304,6 +2321,12 @@
     say(id, text) { const c = getChar(id); if (c) { c.bubble = text; c.bubbleT = 6; } },
     emote(id, e) { const c = getChar(id); if (c) { c.emote = e; c.emoteT = 1.8; } },
     myPos() { const c = NG.app ? getChar(NG.app.me) : null; return c ? exportState(c) : null; },
+    brag(id, item) {
+      const c = getChar(id); if (!c || !item) return;
+      c.bragLook = item.look;
+      if (!c.remote || c.remote.s.away) { standUp(c); c.steps = []; c.sit = false; c.vx = 0; c.aiT = 7; }
+      c.anim = 'brag'; c.animT = 6;
+    },
     get people() { return chars.filter((c) => !c.gone).length; },
     applyRemote, getChar, defaultLook,
     pets, PET_FOOD, PET_ACTS, feedPet, petAct, batchim, petInfo: (i) => petInfo(pets[i]),

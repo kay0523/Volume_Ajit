@@ -38,6 +38,7 @@
       }
       case 'emote': return slot ? { type: 'emote', slot, e: str(m.e, 8) } : null;
       case 'act': return slot ? { type: 'act', slot, a: str(m.a, 16) } : null;
+      case 'brag': return slot && /^[a-z]{3,8}$/.test(m.key || '') ? { type: 'brag', slot, name: str(m.name, 20), key: m.key, id: str(m.id, 48), holo: !!m.holo, bid: str(m.bid, 16) } : null;
       case 'music': return { type: 'music', slot, name: str(m.name, 20), vid: /^[\w-]{11}$/.test(m.vid || '') ? m.vid : '', startedAt: Number(m.startedAt) || t, t };
       case 'pos': {
         if (!slot) return null;
@@ -82,7 +83,7 @@
     return st;
   }
   function fresh(m) {
-    if (m.type === 'emote' || m.type === 'act' || m.type === 'pos') return true;
+    if (m.type === 'emote' || m.type === 'act' || m.type === 'pos' || m.type === 'brag') return true;
     if (!known) return true;
     if (m.type === 'chat' || m.type === 'sys') { if (known.chat.has(m.id)) return false; known.chat.add(m.id); return true; }
     if (m.type === 'note') { if (known.del[m.id] || (known.notes[m.id] || 0) >= m.t) return false; known.notes[m.id] = m.t; return true; }
@@ -91,7 +92,7 @@
     if (m.type === 'music') { if (known.music >= m.t) return false; known.music = m.t; return true; }
     return false;
   }
-  const accept = (m) => { if (m.type !== 'emote' && m.type !== 'act' && m.type !== 'pos') localApply(m); if (fresh(m)) emit(m); };
+  const accept = (m) => { if (!['emote', 'act', 'pos', 'brag'].includes(m.type)) localApply(m); if (fresh(m)) emit(m); };
 
   // ---------- P2P (no accounts): WebRTC between open pages, signalled over public Nostr relays (Trystero) ----------
   let p2p = null;
@@ -170,6 +171,7 @@
       room.on('emote', (d) => { const m = sanitize({ ...(d || {}), type: 'emote' }); if (m) out(m); });
       room.on('act', (d) => { const m = sanitize({ ...(d || {}), type: 'act' }); if (m) out(m); });
       room.on('pos', (d) => { const m = sanitize({ ...(d || {}), type: 'pos' }); if (m) out(m); });
+      room.on('brag', (d) => { const m = sanitize({ ...(d || {}), type: 'brag' }); if (m) out(m); });
     }).catch(() => {});
     const err = () => NG.ui && NG.ui.setNet(false);
     const seen = new Set();
@@ -270,7 +272,7 @@
         else if (m.type === 'noteDel') db.collection('notes').doc(m.id).delete().catch(fail);
         else if (m.type === 'music') { const c = sanitize(m); if (c) db.collection('music').doc('now').set(clean(c)).catch(fail); }
         else if (m.type === 'presence') db.collection('players').doc('p' + m.slot).set(clean({ slot: m.slot, name: m.name || '', status: m.status || null, look: m.look || null, t: Date.now() })).catch(fail);
-        else if (m.type === 'emote' || m.type === 'act' || m.type === 'pos') {
+        else if (m.type === 'emote' || m.type === 'act' || m.type === 'pos' || m.type === 'brag') {
           if (m.type !== 'pos') emit(m);
           const { type, ...payload } = m; void type;
           if (room) { try { Promise.resolve(room.emit(m.type, payload)).catch(() => {}); } catch { /* not allowed */ } }

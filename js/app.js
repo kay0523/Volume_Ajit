@@ -277,6 +277,7 @@
     const card = modal(`<div class="gres r${it.r} ${holo ? 'holo' : ''}"><canvas class="gres-cv"></canvas></div>
       <h3>${extra}${esc(it.n)} <span class="rar" style="--rc:${r.c}">${r.n}</span>${holo ? ' <span class="rar holo-tag">홀로그램</span>' : ''}</h3>
       <p class="sub">${esc(it.g)}</p><p>${esc(it.f)}</p>
+      ${(me.gacha[key] || {})[it.id] ? `<button class="btn brag-btn" data-brag="${key}" data-id="${esc(it.id)}">🏆 자랑하기 <small>모두의 화면에 크게!</small></button>` : ''}
       <div class="row"><button class="btn" data-shop="${key}">도감으로</button><button class="btn primary" data-pull="${key}">🎰 한 번 더 (${NG.GACHA[key].cost}🪙)</button></div>`, 'gacha');
     requestAnimationFrame(() => NG.stage.drawFigure($('.gres-cv', card), it, { holo }));
   }
@@ -353,6 +354,66 @@
     const [e2, n] = petLabel(info.sp, k);
     toast(`${e2} ${info.name}${NG.stage.batchim(info.name) ? '이' : ''}랑 ${n}! 정신력 +3`);
     closeModal();
+  });
+
+  // ---------- figure bragging: a big card on everyone's screen, with claps, whistles and "me too" ----------
+  let bragNow = null, bragTimer = null, bragAt = 0;
+  const RX = { clap: ['👏', '박수'], whistle: ['😙', '휘파람'], try: ['🎰', '나도 도전'] };
+  function startBrag(key, id) {
+    if (me.slot == null) { askIdentity(); return; }
+    if (Date.now() - bragAt < 15000) { toast('잠깐! 방금 자랑했어요 · 15초 뒤에 다시'); return; }
+    bragAt = Date.now();
+    const it = gItem(key, id); if (!it) return;
+    const m = { type: 'brag', slot: me.slot, name: me.name, key, id, holo: !!me.holo[id], bid: Math.random().toString(36).slice(2, 7) }; // short: 'rx:<bid>:whistle' must fit 16 chars
+    NG.net.send(m);
+    if (NG.net.mode !== 'p2p' && NG.net.mode !== 'local') showBrag(m); // p2p/local already echo it back to us
+    NG.net.send({ type: 'sys', slot: me.slot, text: `🏆 ${me.name}님이 [${it.n}] 피규어를 자랑했어요!` });
+    closeModal();
+  }
+  function showBrag(m) {
+    const G = NG.GACHA[m.key], it = G && gItem(m.key, m.id); if (!it) return;
+    if (bragNow && bragNow.bid === m.bid) return;
+    NG.stage.brag(m.slot, it);
+    const mine = m.slot === me.slot, r = NG.GACHA_RARITY[it.r];
+    bragNow = { ...m, rx: [] };
+    const el = $('#brag');
+    el.innerHTML = `<div class="brag-card"><button class="brag-x" aria-label="닫기">×</button>
+      <div class="brag-title">✨ <b>${esc(m.name || '누군가')}</b>님이 피규어를 자랑 중!! ✨</div>
+      <div class="gres r${it.r} ${m.holo ? 'holo' : ''} brag-fig"><canvas class="gres-cv"></canvas></div>
+      <div class="brag-name">${esc(it.n)} <span class="rar" style="--rc:${r.c}">${r.n}</span>${m.holo ? ' <span class="rar holo-tag">홀로그램</span>' : ''}</div>
+      <div class="sub">${G.e} ${esc(G.n)} · ${esc(it.g)}</div>
+      ${mine ? '<p class="sub brag-wait">모두의 반응을 기다리는 중… 👀</p>' : `<div class="brag-rx">${Object.entries(RX).map(([k, [e, n]]) => `<button class="btn" data-rx="${k}">${e} ${n}</button>`).join('')}</div>`}
+      <div class="brag-feed"></div><div class="brag-float"></div></div>`;
+    el.hidden = false;
+    requestAnimationFrame(() => NG.stage.drawFigure($('.gres-cv', el), it, { holo: m.holo }));
+    clearTimeout(bragTimer); bragTimer = setTimeout(hideBrag, 14000);
+  }
+  function hideBrag() { $('#brag').hidden = true; bragNow = null; clearTimeout(bragTimer); }
+  function addReaction(slot, kind) {
+    if (!bragNow || !RX[kind]) return;
+    const [e, n] = RX[kind];
+    const who = slot === me.slot ? me.name : (shared.players[slot] && shared.players[slot].name) || (NG.stage.getChar(slot) || {}).name || '누군가';
+    bragNow.rx.push({ who, kind });
+    const feed = $('#brag .brag-feed');
+    if (feed) {
+      const counts = Object.keys(RX).map((k) => [k, bragNow.rx.filter((x) => x.kind === k).length]).filter(([, c]) => c);
+      feed.innerHTML = counts.map(([k, c]) => `<span>${RX[k][0]} ${c}</span>`).join('') + `<em>${esc(who)} ${e} ${kind === 'try' ? '도전!' : n}</em>`;
+    }
+    const fl = $('#brag .brag-float');
+    if (fl) { const s2 = document.createElement('i'); s2.textContent = e; s2.style.left = 10 + Math.random() * 80 + '%'; fl.appendChild(s2); setTimeout(() => s2.remove(), 1800); }
+    NG.stage.emote(slot, e);
+    clearTimeout(bragTimer); bragTimer = setTimeout(hideBrag, 9000); // keep it up while people react
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-brag]'); if (b) { startBrag(b.dataset.brag, b.dataset.id); return; }
+    if (e.target.closest('.brag-x')) { hideBrag(); return; }
+    const x = e.target.closest('[data-rx]'); if (!x || !bragNow) return;
+    if (me.slot == null) { askIdentity(); return; }
+    const kind = x.dataset.rx, key = bragNow.key, bid = bragNow.bid;
+    addReaction(me.slot, kind);
+    NG.net.send({ type: 'act', slot: me.slot, a: `rx:${bid}:${kind}` });
+    x.disabled = true; setTimeout(() => { x.disabled = false; }, 1500);
+    if (kind === 'try') { hideBrag(); openGachaShop(key); }
   });
 
   NG.stage.onGacha = (key) => {
@@ -1103,9 +1164,12 @@
       }
       NG.stage.setPlayer(m.slot, m.name, m.status, m.look || null);
       if ($('#w-status').classList.contains('open')) renderStatus();
-    } else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
+    } else if (m.type === 'brag') showBrag(m);
+    else if (m.type === 'emote') { if (m.slot !== me.slot) NG.stage.emote(m.slot, m.e); }
     else if (m.type === 'act') {
       if (m.slot === me.slot) return;
+      const rx = /^rx:(\w{1,8}):(\w+)$/.exec(m.a);
+      if (rx) { if (bragNow && bragNow.bid === rx[1]) addReaction(m.slot, rx[2]); return; }
       if (m.a === 'whois') { if (Date.now() - (handle.whoisAt || 0) > 3000) { handle.whoisAt = Date.now(); sendPresence(); } return; }
       const pf = /^pf:(\d):(\w+)$/.exec(m.a);
       if (pf) NG.stage.feedPet(+pf[1], pf[2], m.slot);

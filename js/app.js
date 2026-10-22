@@ -291,8 +291,13 @@
     let roll = Math.random() * total, rar = present[0];
     for (const r of present.slice().reverse()) { roll -= NG.GACHA_RARITY[r].w; if (roll <= 0) { rar = r; break; } }
     const pool = G.items.filter((i) => i.r === rar);
-    const it = pool[Math.floor(Math.random() * pool.length)];
     const own = me.gacha[key] = me.gacha[key] || {};
+    let it = pool[Math.floor(Math.random() * pool.length)];
+    // Half of the would-be duplicates are swapped for one you don't have yet (same rarity), halving the duplicate rate.
+    if (own[it.id] && Math.random() < 0.5) {
+      const fresh = pool.filter((i) => !own[i.id]);
+      if (fresh.length) it = fresh[Math.floor(Math.random() * fresh.length)];
+    }
     const isNew = !own[it.id];
     const holo = key === 'idol' && Math.random() < NG.HOLO_RATE && !me.holo[it.id];
     own[it.id] = (own[it.id] || 0) + 1;

@@ -146,7 +146,12 @@
     const shelf = { x0: W * 0.18, x1: Math.min(loftX1 - 30, W * 0.18 + 8 * 20), y: loftY - 74 };
     // Pull-down projector screen above the gacha shop (16:9) and a ceiling projector over the jukebox.
     const scx = (shopX0 + shopX1) / 2;
-    const screen = { x0: scx - 62, x1: scx + 62, y0: F - 222, y1: F - 152 };
+    // The screen keeps about the same size on your monitor (≈300 px wide, 16:9) however small the window gets,
+    // up to 94% of the visible width and whatever fits above the gacha awning.
+    const sw = Math.min(300 / view.s, view.W * 0.94), shH = Math.min(sw * 9 / 16, F - 130 - 14);
+    const sW = shH * 16 / 9, scy1 = F - 130, half = sW / 2;
+    const scc = Math.max(half + 6, Math.min(W - half - 6, scx));
+    const screen = { x0: scc - half, x1: scc + half, y0: scy1 - shH, y1: scy1 };
     const projector = { x: jukeX - 6, y: F - 196 };
     const machines = ['game', 'chim', 'idol', 'anime'].map((key, k) => ({ key, x: shopX0 + 19 + k * 34, hit: { x0: shopX0 + 5 + k * 34, y0: F - 72, x1: shopX0 + 33 + k * 34, y1: F } }));
     layout = { screen, projector, board, line, loftY, loftX1, ladderX, barX0, barX1, jukeX, winX0, winX1, sofaX0, sofaX1, stoveX, spots, shelf, shopX0, shopX1, machines,

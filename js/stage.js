@@ -10,7 +10,7 @@
   let grid = null;
   const G = 980;
   const CH = 1.15; // character scale
-  const ROOM_W = 760; // minimum room width in logical units
+  const ROOM_W = 840; // minimum room width in logical units
   const FONT = 'Galmuri11, monospace';
   const FONT_B = '"Galmuri11 Bold", Galmuri11, monospace';
 
@@ -115,7 +115,7 @@
     const br = Math.max(26, Math.min(38, W * 0.065));
     const barX0 = loftX1 + Math.max(16, W * 0.03), barX1 = barX0 + Math.max(96, W * 0.17);
     const jukeX = barX1 + 24;
-    const shopX0 = jukeX + 28, shopX1 = shopX0 + 118;
+    const shopX0 = jukeX + 28, shopX1 = shopX0 + 140; // four capsule machines
     const winX0 = Math.max(shopX1 + 14, W * 0.8 - 30), winX1 = winX0 + Math.max(52, W * 0.08);
     const sofaX0 = Math.max(winX1 + 12, W - 104), sofaX1 = Math.min(W - 8, sofaX0 + 88);
     const board = { x: Math.min(W - br - 14, (sofaX0 + sofaX1) / 2), y: F - 150, r: br };
@@ -137,7 +137,7 @@
         { x0: jukeX - 15, y0: F - 60, x1: jukeX + 15, y1: F }, { music: true, focus: 5, msg: '🎷 재즈 한 곡' }, '재즈 켜기/끄기'),
       sp('window', '전망 벤치', '☁️', 'zone', [{ x: (winX0 + winX1) / 2, y: F - 18, dir: -1, level: 0 }],
         { x0: winX0, y0: F - 126, x1: winX1, y1: F }, { focus: 15, msg: '☁️ 하늘 보며 멍…' }, '정신력 +15'),
-      sp('gacha', '가챠샵', '🎰', 'crank', [0, 1, 2].map((k) => ({ x: shopX0 + 20 + k * 39 - 13, y: F, dir: 1, level: 0 })),
+      sp('gacha', '가챠샵', '🎰', 'crank', [0, 1, 2, 3].map((k) => ({ x: shopX0 + 18 + k * 34 - 13, y: F, dir: 1, level: 0 })),
         { x0: shopX0, y0: F - 92, x1: shopX1, y1: F }, { msg: '🎰 가챠 구경 중' }, '피규어 뽑기'),
       sp('sofa', '소파', '🛋️', 'sit', [{ x: sofaX0 + 24, y: F - 15, dir: 1, level: 0 }, { x: sofaX1 - 24, y: F - 15, dir: -1, level: 0 }],
         { x0: sofaX0, y0: F - 42, x1: sofaX1, y1: F }, { focus: 10, msg: '🛋️ 소파에 푹' }, '정신력 +10'),
@@ -148,7 +148,7 @@
     const scx = (shopX0 + shopX1) / 2;
     const screen = { x0: scx - 62, x1: scx + 62, y0: F - 222, y1: F - 152 };
     const projector = { x: jukeX - 6, y: F - 196 };
-    const machines = ['game', 'chim', 'idol'].map((key, k) => ({ key, x: shopX0 + 20 + k * 39, hit: { x0: shopX0 + 6 + k * 39, y0: F - 72, x1: shopX0 + 34 + k * 39, y1: F } }));
+    const machines = ['game', 'chim', 'idol', 'anime'].map((key, k) => ({ key, x: shopX0 + 19 + k * 34, hit: { x0: shopX0 + 5 + k * 34, y0: F - 72, x1: shopX0 + 33 + k * 34, y1: F } }));
     layout = { screen, projector, board, line, loftY, loftX1, ladderX, barX0, barX1, jukeX, winX0, winX1, sofaX0, sofaX1, stoveX, spots, shelf, shopX0, shopX1, machines,
       byId: Object.fromEntries(spots.map((s) => [s.id, s])) };
   }

@@ -1041,7 +1041,7 @@
   }
   function drawThought(t) {
     const th = thoughtNow();
-    if (!th || th.p.mode === 'climb') return;
+    if (!th || th.p.mode === 'climb' || ev) return; // events have their own bubbles
     const p = th.p, T = Math.min(2.4, Math.max(1, 1.45 / view.s));
     ctx.font = `${10 * T}px ${FONT}`;
     const lines = [];
@@ -1212,7 +1212,7 @@
   const EVENTS = {
     goguma: { n: '강아지파의 고구마 비', e: '🍠', dur: 16, lines: ['고구마다!!', '하늘에서 고구마가?!', '멍멍이들 신났다 🐶', '나도 하나만…'] },
     tuna: { n: '고양이파의 참치캔 비', e: '🐟', dur: 16, lines: ['참치캔 비다!', '냥이들 난리났네 🐱', '츄르도 내려줘~', '캔따개 어딨어?'] },
-    leave: { n: '퇴근 시뮬레이션', e: '🏃', dur: 17, out: 9, lines: ['들어가보겠습니다!', '수고하셨습니다~', '내일 봬요!', '퇴근!!! 🏃'] },
+    leave: { n: '퇴근 시뮬레이션', e: '🏃', dur: 15, out: 9, lines: ['들어가보겠습니다!', '수고하셨습니다~', '내일 봬요!', '퇴근!!! 🏃'] },
     party: { n: '알코올 파티', e: '🍻', dur: 24, lines: ['건배~!! 🍻', '한 잔 더!', '딸꾹… 🥴', '오늘은 내가 쏜다!', '노래 한 곡 뽑아?'] },
     camp: { n: '캠핑 가기', e: '🏕️', dur: 30, lines: ['삼겹살 다 익었다! 🥓', '뱅쇼 한 잔 할 사람~ 🍷', '불멍 최고…', '쌈 싸 먹자!', '애들아 이건 안 돼 🐶🐱'] },
   };
@@ -1228,7 +1228,8 @@
       for (let i = 0; i < 46; i++) ev.items.push({ x: 20 + Math.random() * (view.WW - 40), y: -20 - Math.random() * 60, vy: 0, at: 0.2 + Math.random() * 6, landed: false, rot: Math.random() * 6 });
     }
     for (const c of chars) {
-      c.evSaid = -1;
+      c.evSaid = -1; c.evBack = false;
+      c.evHome = { x: c.x, y: c.y, dir: c.dir, spot: c.task && c.task.phase === 'do' ? c.task.spot : null };
       if (kind === 'party') { c.drink = 'beer'; c.tipsyUntil = performance.now() + E.dur * 1000 + 8000; }
       if (kind === 'camp') c.drink = 'vinchaud';
     }
@@ -1249,7 +1250,7 @@
   function evGoal(c) {
     const i = Math.max(0, evIdx(c)), L = layout, F = view.floor, t = evT();
     switch (ev.kind) {
-      case 'leave': return t < EVENTS.leave.out ? { x: view.WW + 40 + i * 26, pose: null, dir: 1 } : { x: view.WW * (0.5 + ((i * 0.13) % 0.4)), pose: null, dir: -1 };
+      case 'leave': return t < EVENTS.leave.out + 0.8 && !c.evBack ? { x: view.WW + 40 + i * 26, pose: null, dir: 1 } : null;
       case 'party': {
         const seats = L.byId.bar.seats;
         if (i < seats.length) return { x: seats[i].x, y: seats[i].y, pose: 'sip', dir: -1 };
@@ -1286,8 +1287,21 @@
     // speech bubbles on a shared schedule
     chars.forEach((c) => {
       const i = Math.max(0, evIdx(c)), k = Math.floor((t - 0.8 - i * 1.6) / 7);
-      if (k >= 0 && k > c.evSaid && k < 4) { c.evSaid = k; c.bubble = E.lines[(i + k) % E.lines.length]; c.bubbleT = 3.5; }
+      if (k >= 0 && k > c.evSaid && k < (ev.kind === 'leave' ? 1 : 4)) { c.evSaid = k; c.bubble = E.lines[(i + k) % E.lines.length]; c.bubbleT = 3.5; }
     });
+    // clocking out: once the screen is black, everyone is back where they were... it was only a dream
+    if (ev.kind === 'leave' && t >= E.out + 0.8 && !ev.back) {
+      ev.back = true;
+      for (const c of chars) {
+        c.evBack = true;
+        c.bubble = '…라는 꿈을 꿨다. 현생 복귀 😇'; c.bubbleT = 4.5;
+        if (c.remote && !c.remote.local) continue; // their own tab moves them (and streams it)
+        const h = c.evHome || { x: view.WW * 0.5, y: view.floor, dir: -1 };
+        standUp(c); c.steps = []; c.climbing = false; c.vx = 0; c.vy = 0; c.manual = false; c.pose = null; c.anim = null; c.animT = 0;
+        c.x = Math.min(view.WW - 14, h.x); c.y = h.y; c.dir = h.dir; c.ground = true; c.aiT = 2;
+        if (h.spot && startTask(c, h.spot, false)) { c.task.phase = 'do'; c.task.until = performance.now() + 8000; seatChar(c); }
+      }
+    }
   }
   // Pets during events.
   function evPetGoal(p) {
@@ -1302,7 +1316,7 @@
         const it = landed[(p.i * 3) % landed.length];
         return { x: it.x + (p.i % 2 ? 10 : -10), lv: 0, pose: 'eat', e: ev.kind === 'goguma' ? '🍠' : '🐟', face: it.x };
       }
-      case 'leave': return t < EVENTS.leave.out + 2 ? { x: W - 22 - p.i * 22, lv: 0, pose: 'beg', e: '🥺', face: W + 50 } : null;
+      case 'leave': return t < EVENTS.leave.out + 0.8 ? { x: W - 22 - p.i * 22, lv: 0, pose: 'beg', e: '🥺', face: W + 50 } : null;
       case 'party': return { x: layout.barX0 - 10 + p.i * 20, lv: 0, pose: p.i % 3 ? 'sit' : 'wiggle', e: p.i % 2 ? '🍻' : '🥴', face: layout.barX0 + 40 };
       case 'camp': { const side = p.i % 2 ? 1 : -1, k = Math.floor(p.i / 2); return { x: fireX() + side * (38 + (k % 3) * 9 + (k >= 3 ? 75 : 0)), lv: 0, pose: 'beg', e: p.i % 2 ? '🤤' : '🥩', face: fireX() }; }
     }
@@ -2000,7 +2014,7 @@
     } else {
       if (c.task) { freeSeat(c); c.task = null; }
       c.pose = s.pose;
-      const tx = s.fx * view.WW, ty = view.floor - s.h;
+      const tx = s.fx * view.WW, ty = view.floor - s.h; // fx can go past 1 while clocking out
       if (Math.abs(tx - c.x) > 160 || Math.abs(ty - c.y) > 160) { c.x = tx; c.y = ty; }
       const k = Math.min(1, dt * 9);
       const dx = tx - c.x;
@@ -2292,7 +2306,9 @@
     const vg = main.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height * 0.35, canvas.width / 2, canvas.height / 2, canvas.width * 0.75);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(30,20,15,.28)');
     main.fillStyle = vg; main.fillRect(0, 0, canvas.width, canvas.height);
-    if (decor.fade > 0) { main.fillStyle = `rgba(24,18,14,${(decor.fade * 0.94).toFixed(3)})`; main.fillRect(0, 0, canvas.width, canvas.height); }
+    const evFade = ev && ev.kind === 'leave' ? Math.max(0, 1 - Math.abs(evT() - EVENTS.leave.out - 0.8) / 0.8) : 0;
+    const fadeA = Math.max(decor.fade * 0.94, evFade);
+    if (fadeA > 0) { main.fillStyle = `rgba(24,18,14,${fadeA.toFixed(3)})`; main.fillRect(0, 0, canvas.width, canvas.height); }
 
     // crisp overlay
     ctx = main;
@@ -2300,6 +2316,14 @@
     drawAim();
     for (const c of sorted) drawCharFx(c, t);
     for (const p of pets) drawPetFx(p, t);
+    if (ev && ev.kind === 'leave' && evT() > EVENTS.leave.out + 0.4) { // the dream caption
+      const k = evT() - EVENTS.leave.out - 0.4, a = Math.min(1, k / 0.6, (EVENTS.leave.dur - EVENTS.leave.out - 0.4 - k) / 0.8);
+      const T = Math.min(2.4, Math.max(1, 1.45 / view.s)), cx = view.camX + view.W / 2, cy = view.H * 0.36;
+      ctx.globalAlpha = Math.max(0, a); ctx.textAlign = 'center';
+      ctx.font = `${17 * T}px ${FONT_B}`; ctx.fillStyle = '#1e1612'; ctx.fillText('…라는 꿈을 꿨다.', cx + 1.5, cy + 1.5); ctx.fillStyle = '#fbf3df'; ctx.fillText('…라는 꿈을 꿨다.', cx, cy);
+      ctx.font = `${12 * T}px ${FONT}`; ctx.fillStyle = '#1e1612'; ctx.fillText('— 현생 복귀 —', cx + 1, cy + 22 * T + 1); ctx.fillStyle = '#f6d58e'; ctx.fillText('— 현생 복귀 —', cx, cy + 22 * T);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    }
     drawThought(t);
     for (const c of sorted) drawLabels(c);
     if (hover && !dart.active) tag((hover.hit.x0 + hover.hit.x1) / 2, hover.hit.y0 - 4, `${hover.e} ${hover.n}`);

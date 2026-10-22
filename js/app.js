@@ -257,7 +257,7 @@
         <button class="btn primary" data-pull="${key}" ${me.coins < G.cost ? 'disabled' : ''}>🎰 ${G.cost}🪙</button></div>
       <div class="gcards">${G.items.map((it) => {
         const has = own[it.id];
-        return `<button class="gcard ${has ? '' : 'locked'} ${me.holo[it.id] ? 'holo' : ''}" data-item="${it.id}" data-key="${key}" ${has ? '' : 'disabled'}>
+        return `<button class="gcard r${it.r} ${has ? '' : 'locked'} ${me.holo[it.id] ? 'holo' : ''}" data-item="${it.id}" data-key="${key}" ${has ? '' : 'disabled'}>
           <canvas></canvas><span>${has ? esc(it.n) : '???'}</span>${has ? `<small>${esc(it.g)}</small>` : ''}</button>`;
       }).join('')}</div></div>`;
     // 200 cards per machine: draw each canvas only once it scrolls into view
@@ -274,7 +274,7 @@
   function showGachaItem(key, it, extra = '') {
     const r = NG.GACHA_RARITY[it.r];
     const holo = !!me.holo[it.id];
-    const card = modal(`<div class="gres ${holo ? 'holo' : ''}"><canvas class="gres-cv"></canvas></div>
+    const card = modal(`<div class="gres r${it.r} ${holo ? 'holo' : ''}"><canvas class="gres-cv"></canvas></div>
       <h3>${extra}${esc(it.n)} <span class="rar" style="--rc:${r.c}">${r.n}</span>${holo ? ' <span class="rar holo-tag">홀로그램</span>' : ''}</h3>
       <p class="sub">${esc(it.g)}</p><p>${esc(it.f)}</p>
       <div class="row"><button class="btn" data-shop="${key}">도감으로</button><button class="btn primary" data-pull="${key}">🎰 한 번 더 (${NG.GACHA[key].cost}🪙)</button></div>`, 'gacha');
@@ -1130,16 +1130,21 @@
     } else if (m.type === 'noteDel') { shared.notes = shared.notes.filter((o) => o.id !== m.id); renderBoard(); }
   }
   // Stream my character (position, rest spot, pose, animation) so everyone sees the same thing; ~5×/s on change, 1×/s idle.
+  // While this tab is in the background the browser slows our timers to a crawl, so we say "away" and everyone
+  // else's screen plays our character on its own until we're back (otherwise it stood frozen for them).
   let lastPos = '', lastPosAt = 0;
-  setInterval(() => {
+  function streamPos(force) {
     if (me.slot == null || !NG.net.online) return;
     const p = NG.stage.myPos(); if (!p) return;
-    const key = JSON.stringify({ ...p, animT: 0 });
+    const away = document.hidden;
+    const key = JSON.stringify({ ...p, animT: 0, away });
     const now = Date.now();
-    if (key === lastPos && now - lastPosAt < 1000) return;
+    if (!force && key === lastPos && now - lastPosAt < (away ? 20000 : 1000)) return;
     lastPos = key; lastPosAt = now;
-    NG.net.send({ type: 'pos', ...p });
-  }, 200);
+    NG.net.send({ type: 'pos', ...p, away });
+  }
+  setInterval(() => streamPos(false), 200);
+  document.addEventListener('visibilitychange', () => streamPos(true));
 
   function bumpBoard() { $('#board-count').textContent = shared.notes.length; }
 

@@ -265,8 +265,10 @@
 
     // Someone else is playing this character: follow their stream instead of running AI/physics here.
     if (c.remote) {
-      if (performance.now() - c.remote.at < 6000 && !(NG.app && NG.app.me === c.id)) { followRemote(c, dt); return; }
-      c.gone = true; return; // they left the room
+      const age = performance.now() - c.remote.at;
+      if (c.remote.s.away && age < 200000) { c.remote.local = true; } // their tab is in the background: auto-play them here
+      else if (age < 6000 && !(NG.app && NG.app.me === c.id)) { c.remote.local = false; followRemote(c, dt); return; }
+      else { c.gone = true; return; } // they left the room
 
     }
 
@@ -1852,7 +1854,7 @@
   function act(id, a) {
     const c = getChar(id);
     if (!c || c.locked) return;
-    if (c.remote && performance.now() - c.remote.at < 4000 && !/^(wave|dance|cheer|sip|drink:)/.test(a)) return; // their stream moves them
+    if (c.remote && !c.remote.s.away && performance.now() - c.remote.at < 4000 && !/^(wave|dance|cheer|sip|drink:)/.test(a)) return; // their stream moves them
     if (a.startsWith('drink:')) {
       const d = NG.DRINKS && NG.DRINKS.find((x) => x.id === a.slice(6));
       if (d) { c.drink = d.id; if (d.k === 'alcohol') c.tipsyUntil = performance.now() + 45000; }

@@ -44,7 +44,7 @@
         const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
         return { type: 'pos', slot, fx: num(m.fx, 0, 1), h: num(m.h, -50, 400), dir: m.dir < 0 ? -1 : 1,
           pose: m.pose ? str(m.pose, 12) : null, spot: m.spot ? str(m.spot, 16) : null, seat: Math.round(num(m.seat, 0, 5)),
-          anim: m.anim ? str(m.anim, 12) : null, animT: num(m.animT, 0, 6), walk: !!m.walk, air: !!m.air, climb: !!m.climb, sit: !!m.sit };
+          anim: m.anim ? str(m.anim, 12) : null, animT: num(m.animT, 0, 6), walk: !!m.walk, air: !!m.air, climb: !!m.climb, sit: !!m.sit, away: !!m.away };
       }
     }
     return null;

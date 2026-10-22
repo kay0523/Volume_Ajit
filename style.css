@@ -606,3 +606,21 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 .bar-item small { font-size: 10.5px; color: var(--sub); line-height: 1.25; word-break: keep-all; }
 .bar-item:hover { border-color: var(--accent); }
 .pet-acts { max-height: 46vh; overflow: auto; }
+
+/* 레전드 cards: a moving gold band round the border with a few sparkles */
+.gcard.r3:not(.locked), .gres.r3 { position: relative; border-color: transparent;
+  background: linear-gradient(var(--paper-hi), var(--paper-hi)) padding-box,
+    linear-gradient(115deg, #9a6a1a, #e8c24a, #fff4c0, #d8a838, #9a6a1a, #e8c24a, #fff4c0) border-box;
+  background-size: auto, 300% 100%; animation: goldband 2.6s linear infinite, goldglow 2s ease-in-out infinite; }
+.gcard.r3:not(.locked) { border-width: 3px; }
+.gres.r3 { border-width: 5px; border-style: solid; }
+@keyframes goldglow { 0%, 100% { box-shadow: 0 0 0 1px #6a4a10, 0 0 6px rgba(240, 196, 80, .55); } 50% { box-shadow: 0 0 0 1px #6a4a10, 0 0 14px rgba(255, 214, 90, .95); } }
+.gcard.r3:not(.locked)::after, .gres.r3::after { content: '✦'; position: absolute; top: 3px; right: 5px; font-size: 14px; color: #fff4c0;
+  text-shadow: 0 0 4px #e8b830, 0 0 8px #e8b830; animation: twinkle 1.6s ease-in-out infinite; pointer-events: none; }
+.gcard.r3:not(.locked)::before, .gres.r3::before { content: '✦'; position: absolute; top: 18px; left: 6px; font-size: 10px; color: #fff4c0;
+  text-shadow: 0 0 4px #e8b830; animation: twinkle 1.6s ease-in-out .8s infinite; pointer-events: none; }
+.gcard.r3.locked { border-color: #c8a050; }
+.gcard.r3:not(.locked) span { color: #8a5a10; font-family: var(--font-b); }
+@keyframes goldband { from { background-position: 0 0, 0 0; } to { background-position: 0 0, 300% 0; } }
+@keyframes twinkle { 0%, 100% { opacity: .25; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .gcard.r3:not(.locked), .gres.r3, .gcard.r3::after, .gcard.r3::before, .gres.r3::after, .gres.r3::before { animation: none; } }

@@ -253,12 +253,12 @@
     const n = G.items.filter((i) => own[i.id]).length;
     box.innerHTML = `<div class="gshop" style="--gc:${G.color}">
       <div class="gshop-head"><span class="gm">${G.e}</span>
-        <div class="gi"><b>${esc(G.n)}</b><small>${esc(G.desc)}</small><small>수집 ${n} / ${G.items.length}</small><small class="coin-refill">${refillText()}</small></div>
+        <div class="gi"><b>${esc(G.n)}</b><small>${esc(G.desc)}</small><small>수집 ${n} / ${G.items.length}${n ? ' · 🏆를 누르면 모두에게 자랑해요' : ''}</small><small class="coin-refill">${refillText()}</small></div>
         <button class="btn primary" data-pull="${key}" ${me.coins < G.cost ? 'disabled' : ''}>🎰 ${G.cost}🪙</button></div>
       <div class="gcards">${G.items.map((it) => {
         const has = own[it.id];
         return `<button class="gcard r${it.r} ${has ? '' : 'locked'} ${me.holo[it.id] ? 'holo' : ''}" data-item="${it.id}" data-key="${key}" ${has ? '' : 'disabled'}>
-          <canvas></canvas><span>${has ? esc(it.n) : '???'}</span>${has ? `<small>${esc(it.g)}</small>` : ''}</button>`;
+          <canvas></canvas><span>${has ? esc(it.n) : '???'}</span>${has ? `<small>${esc(it.g)}</small><i class="gbrag" role="button" title="모두에게 자랑하기" data-brag="${key}" data-id="${esc(it.id)}">🏆</i>` : ''}</button>`;
       }).join('')}</div></div>`;
     // 200 cards per machine: draw each canvas only once it scrolls into view
     const draw = (b) => {
@@ -322,7 +322,7 @@
     const p = e.target.closest('[data-pull]'); if (p) { pullGacha(p.dataset.pull); return; }
     const s = e.target.closest('[data-shop]'); if (s) { openGachaShop(s.dataset.shop); return; }
     const t = e.target.closest('[data-gtab]'); if (t) { openGachaShop(t.dataset.gtab); return; }
-    const c = e.target.closest('.gcard:not(.locked)'); if (c) showGachaItem(c.dataset.key, gItem(c.dataset.key, c.dataset.item));
+    const c = !e.target.closest('[data-brag]') && e.target.closest('.gcard:not(.locked)'); if (c) showGachaItem(c.dataset.key, gItem(c.dataset.key, c.dataset.item));
   });
   // ---------- pets: tap one to feed or play ----------
   me.petLove = me.petLove || {};

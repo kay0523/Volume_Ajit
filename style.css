@@ -667,3 +667,10 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 @keyframes evIn { 0% { opacity: 0; transform: translate(-50%, -10px) scale(.9); } 8%, 85% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; } }
 @media (max-width: 560px) { .ev-bar button em { display: none; } .ev-bar button { padding: 4px 7px; } .ev-banner { font-size: 12px; white-space: normal; width: max-content; max-width: 90vw; text-align: center; } }
 @media (prefers-reduced-motion: reduce) { .ev-bar button.on, .ev-banner.show { animation: none; } }
+
+/* quick brag button on owned cards */
+.gcard { position: relative; }
+.gbrag { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; display: grid; place-items: center; font-style: normal; font-size: 13px;
+  background: linear-gradient(#f6dc7a, #e8b830); border: 2px solid #8a5a10; border-radius: 3px; box-shadow: 0 2px 0 #6a4a10; cursor: pointer; z-index: 2; }
+.gbrag:hover { transform: translateY(-1px) scale(1.08); }
+@media (hover: hover) { .gcard .gbrag { opacity: .85; } .gcard:hover .gbrag { opacity: 1; } }

@@ -680,3 +680,21 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
 .ev-bar.collapsed.open { flex-direction: column; }
 .ev-bar.collapsed:not(.open) .ev-toggle em { display: none; }
 .ev-bar.collapsed:not(.open) { padding: 2px; }
+
+/* brag card fits any window: figure scales with the height, short windows go side by side, never taller than the screen */
+.brag { padding: max(8px, min(9vh, 9dvh)) 8px 8px; }
+.brag-card { max-height: calc(var(--app-h, 100dvh) - 16px); overflow-y: auto; overscroll-behavior: contain; }
+.brag-fig { width: clamp(84px, 24vh, 170px); width: clamp(84px, calc(var(--app-h, 100dvh) * .24), 170px); }
+@media (max-height: 560px) {
+  .brag { padding-top: 6px; }
+  .brag-card { width: min(460px, calc(100vw - 16px)); padding: 10px 12px; }
+  .brag-title { font-size: 13px; margin-bottom: 6px; }
+  .brag-body { display: flex; gap: 12px; align-items: center; text-align: left; }
+  .brag-body .brag-fig { flex: none; margin: 0; width: clamp(72px, calc(var(--app-h, 100dvh) * .3), 130px); }
+  .brag-info { min-width: 0; flex: 1; }
+  .brag-name { font-size: 15px; }
+  .brag-rx { justify-content: flex-start; margin-top: 6px; }
+  .brag-rx .btn { padding: 5px 8px; font-size: 12px; }
+  .brag-feed { justify-content: flex-start; }
+}
+@media (max-width: 360px) { .brag-rx .btn { padding: 6px 7px; font-size: 12px; } }

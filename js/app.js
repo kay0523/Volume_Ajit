@@ -384,11 +384,11 @@
     const el = $('#brag');
     el.innerHTML = `<div class="brag-card"><button class="brag-x" aria-label="닫기">×</button>
       <div class="brag-title">✨ <b>${esc(m.name || '누군가')}</b>님이 피규어를 자랑 중!! ✨</div>
-      <div class="gres r${it.r} ${m.holo ? 'holo' : ''} brag-fig"><canvas class="gres-cv"></canvas></div>
-      <div class="brag-name">${esc(it.n)} <span class="rar" style="--rc:${r.c}">${r.n}</span>${m.holo ? ' <span class="rar holo-tag">홀로그램</span>' : ''}</div>
+      <div class="brag-body"><div class="gres r${it.r} ${m.holo ? 'holo' : ''} brag-fig"><canvas class="gres-cv"></canvas></div>
+      <div class="brag-info"><div class="brag-name">${esc(it.n)} <span class="rar" style="--rc:${r.c}">${r.n}</span>${m.holo ? ' <span class="rar holo-tag">홀로그램</span>' : ''}</div>
       <div class="sub">${G.e} ${esc(G.n)} · ${esc(it.g)}</div>
       ${mine ? '<p class="sub brag-wait">모두의 반응을 기다리는 중… 👀</p>' : `<div class="brag-rx">${Object.entries(RX).map(([k, [e, n]]) => `<button class="btn" data-rx="${k}">${e} ${n}</button>`).join('')}</div>`}
-      <div class="brag-feed"></div><div class="brag-float"></div></div>`;
+      <div class="brag-feed"></div></div></div><div class="brag-float"></div></div>`;
     el.hidden = false;
     requestAnimationFrame(() => NG.stage.drawFigure($('.gres-cv', el), it, { holo: m.holo }));
     clearTimeout(bragTimer); bragTimer = setTimeout(hideBrag, 14000);

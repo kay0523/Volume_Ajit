@@ -887,6 +887,20 @@
   // ---------- chat ----------
   const chat = $('#chat');
   let unread = 0;
+  // The chat log sticks to the newest message unless you scrolled up to read; opening it always lands at the bottom.
+  let chatStick = true;
+  function chatToBottom(force) {
+    const log = $('#chat-log');
+    if (force) chatStick = true;
+    log.scrollTop = log.scrollHeight;
+    requestAnimationFrame(() => { if (chatStick) log.scrollTop = log.scrollHeight; }); // again once it has its size
+  }
+  $('#chat-log').addEventListener('scroll', () => {
+    const log = $('#chat-log');
+    if (log.clientHeight > 0) chatStick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  });
+  // The log appears or changes size (opened, mini mode, window resized): keep the newest message in view.
+  new ResizeObserver(() => { if (chatStick) $('#chat-log').scrollTop = 1e9; }).observe($('#chat-log'));
   function addChat(m) {
     const log = $('#chat-log');
     const el = document.createElement('div');
@@ -900,10 +914,9 @@
       el.className = 'msg' + (m.slot === me.slot ? ' mine' : '');
       el.innerHTML = `<b style="color:${c ? c.hair : '#fff'}">${esc(m.name || '???')}</b><span>${esc(m.text)}</span><time>${time}</time>`;
     }
-    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     log.appendChild(el);
     while (log.children.length > 150) log.firstChild.remove();
-    if (atBottom || m.slot === me.slot) log.scrollTop = log.scrollHeight;
+    if (chatStick || m.slot === me.slot) chatToBottom();
     if (chat.classList.contains('min') && m.type === 'chat') { unread++; $('#chat-badge').textContent = unread; $('#chat-badge').hidden = false; }
   }
   $('#chat-form').addEventListener('submit', (e) => {
@@ -917,9 +930,9 @@
   });
   $('#chat-min').addEventListener('click', () => {
     chat.classList.toggle('min');
-    if (!chat.classList.contains('min')) { unread = 0; $('#chat-badge').hidden = true; $('#chat-log').scrollTop = 1e9; }
+    if (!chat.classList.contains('min')) { unread = 0; $('#chat-badge').hidden = true; chatToBottom(true); }
   });
-  $('#chat-pill').addEventListener('click', () => { chat.classList.remove('min'); unread = 0; $('#chat-badge').hidden = true; });
+  $('#chat-pill').addEventListener('click', () => { chat.classList.remove('min'); unread = 0; $('#chat-badge').hidden = true; chatToBottom(true); });
   function setOpacity(v) {
     me.chatOpacity = v; chat.style.setProperty('--chat-a', v);
     $('#chat-op').value = v; save();

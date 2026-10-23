@@ -698,3 +698,22 @@ b, strong, h3, h4 { font-family: var(--font-b); font-weight: normal; }
   .brag-feed { justify-content: flex-start; }
 }
 @media (max-width: 360px) { .brag-rx .btn { padding: 6px 7px; font-size: 12px; } }
+
+/* clap / whistle shouts and firework bursts (shared on every screen) */
+.fx { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
+.rx-shout { position: absolute; left: 50%; transform: translate(-50%, 0) scale(var(--s, 1)); white-space: nowrap; max-width: 94vw; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--font-b); font-size: clamp(16px, 4.2vw, 26px); color: #fff8e6; padding: 6px 16px; border-radius: 4px;
+  background: rgba(40, 26, 16, .82); border: 3px solid #e8b830; box-shadow: 0 0 0 2px #6a4a10, 0 6px 0 rgba(20, 14, 10, .45);
+  text-shadow: 2px 2px 0 #3a2410; }
+.rx-shout.whistle { border-color: #b48cff; box-shadow: 0 0 0 2px #4a3a7a, 0 6px 0 rgba(20, 14, 10, .45); }
+.rx-shout b { color: #f6d58e; } .rx-shout.whistle b { color: #d8c4ff; }
+.rx-shout em { font-style: normal; color: #ff8a6a; margin-left: 4px; }
+.rx-shout.pop { animation: shoutPop .32s cubic-bezier(.2, 1.8, .4, 1); }
+@keyframes shoutPop { from { transform: translate(-50%, 0) scale(calc(var(--s, 1) * 1.45)); } }
+.burst { position: absolute; width: 0; height: 0; }
+.burst i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; animation: spark .95s cubic-bezier(.1, .7, .3, 1) forwards; }
+.burst i.emo { width: auto; height: auto; font-style: normal; font-size: 18px; left: -9px; top: -9px; background: none; }
+@keyframes spark { 0% { transform: translate(0, 0) scale(1.3); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(var(--dx), calc(var(--dy) + 30px)) scale(.5); opacity: 0; } }
+.brag-card.shake { animation: cardShake .35s; }
+@keyframes cardShake { 20% { transform: translate(-4px, 2px) rotate(-1deg); } 50% { transform: translate(4px, -2px) rotate(1deg); } 80% { transform: translate(-2px, 1px); } }
+@media (prefers-reduced-motion: reduce) { .rx-shout.pop, .burst i, .brag-card.shake { animation: none; } .burst { display: none; } }

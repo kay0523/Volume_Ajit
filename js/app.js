@@ -393,6 +393,43 @@
     requestAnimationFrame(() => NG.stage.drawFigure($('.gres-cv', el), it, { holo: m.holo }));
     clearTimeout(bragTimer); bragTimer = setTimeout(hideBrag, 14000);
   }
+  // Big shout + firework burst for each clap/whistle; pressing again quickly builds a combo with bigger bursts.
+  const combos = {};
+  const SHOUT = { clap: ['👏', '박수치는 중!!'], whistle: ['😙', '휘파람 부는 중!!'] };
+  function cheerFx(slot, who, kind) {
+    const key = slot + kind, now = Date.now();
+    const c = combos[key] = combos[key] && now - combos[key].at < 1400 ? { n: combos[key].n + 1, at: now } : { n: 1, at: now };
+    const fx = $('#fx');
+    // the shout (one per person and kind, updated while the combo lasts)
+    let el = fx.querySelector(`[data-shout="${CSS.escape(key)}"]`);
+    if (!el) {
+      el = document.createElement('div'); el.className = 'rx-shout ' + kind; el.dataset.shout = key;
+      const lane = fx.querySelectorAll('.rx-shout').length;
+      el.style.top = `calc(22% + ${(lane % 4) * 56}px)`; fx.appendChild(el);
+    }
+    el.innerHTML = `<span>${SHOUT[kind][0]}</span> <b>${esc(who)}</b>님이 ${SHOUT[kind][1]}${c.n > 1 ? ` <em>×${c.n} 콤보!</em>` : ''}`;
+    el.style.setProperty('--s', Math.min(1.7, 1 + (c.n - 1) * 0.07));
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    clearTimeout(el.hideT); el.hideT = setTimeout(() => el.remove(), 1600);
+    // fireworks: more and bigger bursts as the combo climbs
+    const bursts = Math.min(4, 1 + Math.floor(c.n / 3));
+    for (let k = 0; k < bursts; k++) burst(15 + Math.random() * 70, 12 + Math.random() * 45, kind, Math.min(36, 12 + c.n * 3));
+    if (c.n >= 5) { const card = $('#brag .brag-card'); if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); } }
+  }
+  const SPARK = { clap: ['#f6d58e', '#e8b830', '#fff4c0', '#e86a6a', '#7cc6ff'], whistle: ['#b48cff', '#7cc6ff', '#ff8fb3', '#8fe3c2', '#fff4c0'] };
+  function burst(xPct, yPct, kind, n) {
+    const fx = $('#fx'), box2 = document.createElement('div');
+    box2.className = 'burst'; box2.style.left = xPct + '%'; box2.style.top = yPct + '%';
+    for (let i = 0; i < n; i++) {
+      const sp = document.createElement('i'), a = (i / n) * Math.PI * 2 + Math.random() * 0.3, d = 50 + Math.random() * 70;
+      if (i % 6 === 0) { sp.textContent = kind === 'clap' ? '👏' : '🎵'; sp.className = 'emo'; }
+      else sp.style.background = SPARK[kind][i % SPARK[kind].length];
+      sp.style.setProperty('--dx', Math.cos(a) * d + 'px'); sp.style.setProperty('--dy', Math.sin(a) * d + 'px');
+      sp.style.animationDelay = Math.random() * 0.08 + 's';
+      box2.appendChild(sp);
+    }
+    fx.appendChild(box2); setTimeout(() => box2.remove(), 1200);
+  }
   function hideBrag() { $('#brag').hidden = true; bragNow = null; clearTimeout(bragTimer); }
   function addReaction(slot, kind) {
     if (!bragNow || !RX[kind]) return;
@@ -407,6 +444,7 @@
     const fl = $('#brag .brag-float');
     if (fl) { const s2 = document.createElement('i'); s2.textContent = e; s2.style.left = 10 + Math.random() * 80 + '%'; fl.appendChild(s2); setTimeout(() => s2.remove(), 1800); }
     NG.stage.emote(slot, e);
+    if (kind !== 'try') cheerFx(slot, who, kind);
     clearTimeout(bragTimer); bragTimer = setTimeout(hideBrag, 9000); // keep it up while people react
   }
   document.addEventListener('click', (e) => {
@@ -415,9 +453,10 @@
     const x = e.target.closest('[data-rx]'); if (!x || !bragNow) return;
     if (me.slot == null) { askIdentity(); return; }
     const kind = x.dataset.rx, key = bragNow.key, bid = bragNow.bid;
+    if (Date.now() - (x.lastAt || 0) < 110) return; // mash away, but not faster than ~9 a second
+    x.lastAt = Date.now();
     addReaction(me.slot, kind);
     NG.net.send({ type: 'act', slot: me.slot, a: `rx:${bid}:${kind}` });
-    x.disabled = true; setTimeout(() => { x.disabled = false; }, 1500);
     if (kind === 'try') { hideBrag(); openGachaShop(key); }
   });
 

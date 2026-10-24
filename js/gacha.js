@@ -775,7 +775,7 @@
     const guests = guest === '-' ? [] : guest.split(/[,，、]\s*/);
     CHIM.push({
       id: 'ce-' + hash(title).toString(36), n: title, g: `침착맨 · ${cat}${guests.length ? ' · ' + guests.join(', ') : ''}`,
-      f: `${year === '?' ? '' : year + '년 · '}${cat} 에피소드${guests.length ? ` · 게스트 ${guests.join(', ')}` : ''}${views ? ` · 조회수 ${views >= 1000 ? (views / 1000).toFixed(0) + '천' : views}만회+` : ''}`,
+      f: `${year === '?' ? '' : year + '년 · '}${cat} 에피소드${guests.length ? ` · 게스트 ${guests.join(', ')}` : ''}${views ? ` · 조회수 ${views.toLocaleString('ko-KR')}만회+` : ''}`,
       r, prop, bg, look: look({ ...CHIM_BASE, top: pick(TOPS, title) }),
       duo: guests.length ? randLook('guest' + guests[0]) : null,
     });
